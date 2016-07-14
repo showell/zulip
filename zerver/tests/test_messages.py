@@ -319,7 +319,7 @@ class StreamMessagesTest(AuthedTestCase):
         with queries_captured() as queries:
             send_message()
 
-        self.assert_length(queries, 7)
+        self.assert_length(queries, 8)
 
     def test_message_mentions(self):
         user_profile = get_user_profile_by_email("iago@zulip.com")
@@ -758,13 +758,15 @@ class MessagePOSTTest(AuthedTestCase):
         user.realm.save()
 
 class EditMessageTest(AuthedTestCase):
-    def check_message(self, msg_id, subject=None, content=None):
+    def check_message(self, msg_id, subject=None, content=None, edited=True):
         msg = Message.objects.get(id=msg_id)
         cached = msg.to_dict(False)
         uncached = msg.to_dict_uncached_helper(False)
         self.assertEqual(cached, uncached)
         if subject:
             self.assertEqual(msg.topic_name(), subject)
+            if edited:
+                self.assertEqual(msg.topic.name, subject)
         if content:
             self.assertEqual(msg.content, content)
         return msg
@@ -842,8 +844,8 @@ class EditMessageTest(AuthedTestCase):
 
         self.check_message(id1, subject="edited")
         self.check_message(id2, subject="edited")
-        self.check_message(id3, subject="topic1")
-        self.check_message(id4, subject="topic2")
+        self.check_message(id3, subject="topic1", edited=False)
+        self.check_message(id4, subject="topic2", edited=False)
         self.check_message(id5, subject="edited")
 
     def test_propagate_all_topics(self):
@@ -871,10 +873,10 @@ class EditMessageTest(AuthedTestCase):
 
         self.check_message(id1, subject="edited")
         self.check_message(id2, subject="edited")
-        self.check_message(id3, subject="topic1")
-        self.check_message(id4, subject="topic2")
+        self.check_message(id3, subject="topic1", edited=False)
+        self.check_message(id4, subject="topic2", edited=False)
         self.check_message(id5, subject="edited")
-        self.check_message(id6, subject="topic3")
+        self.check_message(id6, subject="topic3", edited=False)
 
 class StarTests(AuthedTestCase):
 
