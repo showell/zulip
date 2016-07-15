@@ -49,7 +49,9 @@ from zerver.lib.actions import (
 )
 
 from zerver.lib.event_queue import allocate_client_descriptor
-from zerver.lib.test_helpers import AuthedTestCase, POSTRequestMock
+from zerver.lib.test_helpers import (
+    AuthedTestCase, POSTRequestMock, create_stream_topic_for_testing,
+    )
 from zerver.lib.validator import (
     check_bool, check_dict, check_int, check_list, check_string,
     equals, check_none_or, Validator
@@ -399,6 +401,10 @@ class EventsRegisterTest(AuthedTestCase):
 
     def test_muted_topics_events(self):
         # type: () -> None
+        realm = get_realm('zulip.com')
+        create_stream_topic_for_testing(realm=realm,
+            stream_name='Denmark', topic_name='topic')
+
         muted_topics_checker = check_dict([
             ('type', equals('muted_topics')),
             ('muted_topics', check_list(check_list(check_string, 2))),

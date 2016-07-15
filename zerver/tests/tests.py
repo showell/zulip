@@ -13,10 +13,12 @@ from zerver.lib.test_helpers import (
     simulated_queue_client, tornado_redirected_to_list, AuthedTestCase,
     most_recent_usermessage, most_recent_message,
     subject_topic_awareness,
+    create_stream_topic_for_testing,
 )
 
 from zerver.models import UserProfile, Recipient, \
     Realm, Client, UserActivity, \
+    UserTopic, \
     get_user_profile_by_email, split_email_to_domain, get_realm, \
     get_client, get_stream, Message, get_unique_open_realm, \
     completely_open
@@ -1722,6 +1724,11 @@ class MutedTopicsTests(AuthedTestCase):
         # type: () -> None
         email = 'hamlet@zulip.com'
         self.login(email)
+        realm = get_user_profile_by_email(email).realm
+        create_stream_topic_for_testing(realm=realm,
+            stream_name='stream', topic_name='topic')
+        create_stream_topic_for_testing(realm=realm,
+            stream_name='stream2', topic_name='topic2')
 
         url = '/json/set_muted_topics'
         data = {'muted_topics': '[["stream", "topic"]]'}
@@ -1729,7 +1736,8 @@ class MutedTopicsTests(AuthedTestCase):
         self.assert_json_success(result)
 
         user = get_user_profile_by_email(email)
-        self.assertEqual(ujson.loads(user.muted_topics), [["stream", "topic"]])
+        stream_topic_names = UserTopic.get_muted_stream_topic_names_for_user(user_profile=user)
+        self.assertEqual(stream_topic_names, {("stream", "topic")})
 
         url = '/json/set_muted_topics'
         data = {'muted_topics': '[["stream2", "topic2"]]'}
@@ -1737,7 +1745,8 @@ class MutedTopicsTests(AuthedTestCase):
         self.assert_json_success(result)
 
         user = get_user_profile_by_email(email)
-        self.assertEqual(ujson.loads(user.muted_topics), [["stream2", "topic2"]])
+        stream_topic_names = UserTopic.get_muted_stream_topic_names_for_user(user_profile=user)
+        self.assertEqual(stream_topic_names, {("stream2", "topic2")})
 
 class ExtractedRecipientsTest(TestCase):
     def test_extract_recipients(self):

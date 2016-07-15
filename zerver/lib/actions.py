@@ -14,6 +14,7 @@ from zerver.lib.context_managers import lockfile
 from zerver.models import Realm, RealmEmoji, Stream, UserProfile, UserActivity, Topic, \
     Subscription, Recipient, Message, Attachment, UserMessage, valid_stream_name, \
     Client, DefaultStream, UserPresence, Referral, PushDeviceToken, MAX_SUBJECT_LENGTH, \
+    UserTopic, \
     MAX_MESSAGE_LENGTH, get_client, get_stream, get_recipient, get_huddle, \
     get_user_profile_by_id, PreregistrationUser, get_display_recipient, \
     to_dict_cache_key, get_realm, bulk_get_recipients, \
@@ -2715,7 +2716,10 @@ def fetch_initial_state_data(user_profile, event_types, queue_id):
             state['max_message_id'] = -1
 
     if want('muted_topics'):
-        state['muted_topics'] = ujson.loads(user_profile.muted_topics)
+        state['muted_topics'] = sorted([
+            list(tup)
+            for tup in UserTopic.get_muted_stream_topic_names_for_user(user_profile=user_profile)
+            ])
 
     if want('pointer'):
         state['pointer'] = user_profile.pointer
@@ -3212,10 +3216,40 @@ def do_set_alert_words(user_profile, alert_words):
 
 def do_set_muted_topics(user_profile, muted_topics):
     # type: (UserProfile, Union[List[List[text_type]], List[Tuple[text_type, text_type]]]) -> None
-    user_profile.muted_topics = ujson.dumps(muted_topics)
-    user_profile.save(update_fields=['muted_topics'])
+
+    set_muted_topics_in_database(user_profile, muted_topics)
     event = dict(type="muted_topics", muted_topics=muted_topics)
     send_event(event, [user_profile.id])
+
+def set_muted_topics_in_database(user_profile, muted_topics):
+    # type: (UserProfile, Union[List[List[text_type]], List[Tuple[text_type, text_type]]]) -> None
+    # This method is extracted so that we can use it in the
+    # database migration.  The old JSON-based way of setting
+    # muted topics is going away soon.
+
+    topics = Topic.get_topics_from_names(
+        realm = user_profile.realm,
+        name_dicts=[
+            dict(stream_name=t[0], topic_name=t[1])
+            for t in muted_topics
+        ],
+    )
+    topic_ids = [topic.id for topic in topics]
+
+    for topic_id in topic_ids:
+        UserTopic.objects.get_or_create(
+            user_profile=user_profile,
+            topic_id=topic_id,
+            defaults=dict(is_muted=True),
+            )
+
+    # Now turn off muting for the old rows.
+    UserTopic.objects.filter(
+        user_profile=user_profile
+        ).exclude(
+            topic_id__in=topic_ids
+        ).update(is_muted=False)
+
 
 def notify_realm_filters(realm):
     # type: (Realm) -> None
