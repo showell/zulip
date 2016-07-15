@@ -26,6 +26,7 @@ from zerver.lib.actions import (
 
 from zerver.models import (
     get_realm,
+    get_recipient,
     get_stream,
     get_user_profile_by_email,
     resolve_email_to_domain,
@@ -35,6 +36,7 @@ from zerver.models import (
     Recipient,
     Stream,
     Subscription,
+    Topic,
     UserMessage,
     UserProfile,
 )
@@ -190,6 +192,22 @@ def get_user_messages(user_profile):
 def subject_topic_awareness(test_obj, new_topics=False):
     return test_obj.settings(CATCH_TOPIC_MIGRATION_BUGS=new_topics)
 
+def create_stream_topic_for_testing(realm, stream_name, topic_name):
+    # This just makes the DB records with no side effects.
+    (stream, created) = Stream.objects.get_or_create(
+        realm=realm, name__iexact=stream_name,
+        defaults={'name': stream_name})
+    if created:
+        recipient = Recipient.objects.create(type_id=stream.id, type=Recipient.STREAM)
+    else:
+        recipient = get_recipient(Recipient.STREAM, stream.id)
+
+    topic = Topic.objects.get_or_create(
+        recipient=recipient,
+        name=topic_name,
+        )
+
+    return (stream, topic)
 
 class DummyHandler(object):
     def __init__(self):
