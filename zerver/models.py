@@ -769,6 +769,29 @@ class Topic(ModelReprMixin, models.Model):
     recipient = models.ForeignKey(Recipient) # type: Recipient
     name = models.CharField(max_length=MAX_SUBJECT_LENGTH, db_index=True) # type: text_type
 
+    @staticmethod
+    def get_topics_from_names(realm, name_dicts):
+        # type: (Realm, List[Dict[text_type, text_type]) -> List[Topic]
+
+        # TODO: Handle non-existent stream/topics.
+        # TODO: Make this work with a single bulk query.
+        topics = set()
+
+        for nd in name_dicts:
+            stream_name = nd['stream_name']
+            topic_name = nd['topic_name']
+            stream = get_stream(stream_name, realm)
+            recipient = get_recipient(Recipient.STREAM, stream.id)
+            try:
+                topic = Topic.objects.get(
+                    recipient_id=recipient.id,
+                    name=topic_name)
+            except Topic.DoesNotExist:
+                continue
+            topics.add(topic)
+
+        return topics
+
     def __unicode__(self):
         # type: () -> text_type
         return u"<Topic: %s>" % (self.name,)
