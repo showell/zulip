@@ -2447,6 +2447,10 @@ def do_update_message(user_profile, message_id, subject, propagate_mode, content
 
     if subject is not None:
         orig_subject = message.topic_name()
+        orig_topic_id = message.topic_id
+        if not orig_topic_id:
+            raise JsonableError(_('This message is locked due to migration.'))
+
         subject = truncate_topic(subject)
         event["orig_subject"] = orig_subject
         event["propagate_mode"] = propagate_mode
@@ -2468,7 +2472,7 @@ def do_update_message(user_profile, message_id, subject, propagate_mode, content
         edit_history_event["prev_subject"] = orig_subject
 
         if propagate_mode in ["change_later", "change_all"]:
-            propagate_query = Q(recipient = message.recipient, subject = orig_subject)
+            propagate_query = Q(recipient = message.recipient, topic_id = orig_topic_id)
             # We only change messages up to 2 days in the past, to avoid hammering our
             # DB by changing an unbounded amount of messages
             if propagate_mode == 'change_all':
