@@ -1776,7 +1776,7 @@ class TestMissedMessages(AuthedTestCase):
         tokens = [str(random.getrandbits(32)) for _ in range(30)]
         mock_random_token.side_effect = tokens
 
-        with subject_topic_awareness(self): # emails
+        with subject_topic_awareness(self, new_topics=True): # emails
             self.send_message("othello@zulip.com", "Denmark", Recipient.STREAM, '0')
             self.send_message("othello@zulip.com", "Denmark", Recipient.STREAM, '1')
             self.send_message("othello@zulip.com", "Denmark", Recipient.STREAM, '2')
@@ -1815,7 +1815,7 @@ class TestMissedMessages(AuthedTestCase):
         tokens = [str(random.getrandbits(32)) for _ in range(30)]
         mock_random_token.side_effect = tokens
 
-        with subject_topic_awareness(self): # emails
+        with subject_topic_awareness(self, new_topics=True): # emails
             msg_id = self.send_message("othello@zulip.com", "hamlet@zulip.com",
                                        Recipient.PERSONAL,
                                        'Extremely personal message!')
