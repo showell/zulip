@@ -773,6 +773,22 @@ class Topic(ModelReprMixin, models.Model):
         # type: () -> text_type
         return u"<Topic: %s>" % (self.name,)
 
+class UserTopic(ModelReprMixin, models.Model):
+    user_profile = models.ForeignKey(UserProfile) # type: UserProfile
+    topic = models.ForeignKey(Topic) # type: Topic
+    is_muted = models.BooleanField(default=False, db_index=True) # type: bool
+
+    class Meta(object):
+        unique_together = ("user_profile", "topic")
+
+    def __unicode__(self):
+        # type: () -> text_type
+        return u"<UserTopic: %s / %s (%s)>" % (
+            self.user_profile.email,
+            self.topic.name,
+            self.flags_list()
+        )
+
 class Message(ModelReprMixin, models.Model):
     sender = models.ForeignKey(UserProfile) # type: UserProfile
     recipient = models.ForeignKey(Recipient) # type: Recipient
