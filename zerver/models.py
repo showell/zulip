@@ -804,6 +804,28 @@ class UserTopic(ModelReprMixin, models.Model):
     class Meta(object):
         unique_together = ("user_profile", "topic")
 
+    def stream_name(self):
+        stream = Stream.objects.get(id=self.topic.recipient.type_id)
+        return stream.name
+
+    def topic_name(self):
+        return self.topic.name
+
+    @staticmethod
+    def get_muted_stream_topic_names_for_user(user_profile):
+        # TODO: optimize
+
+        user_topics = UserTopic.objects.filter(
+            user_profile=user_profile,
+            is_muted=True,
+            )
+        return {
+            (
+                user_topic.stream_name(),
+                user_topic.topic_name(),
+            ) for user_topic in user_topics
+        }
+
     def __unicode__(self):
         # type: () -> text_type
         return u"<UserTopic: %s / %s (%s)>" % (
