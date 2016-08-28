@@ -776,6 +776,7 @@ JS_SPECS = {
             'js/people.js',
             'js/message_store.js',
             'js/server_events.js',
+            'js/zapp.js',
             'js/zulip.js',
             'js/activity.js',
             'js/colorspace.js',

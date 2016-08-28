@@ -58,7 +58,8 @@ var hotkeys_shift_insensitive = {
     114: {name: 'reply_message', message_view_only: true}, // 'r'
     115: {name: 'narrow_by_recipient', message_view_only: true}, // 's'
     118: {name: 'narrow_private', message_view_only: true}, // 'v'
-    119: {name: 'query_streams', message_view_only: false} // 'w'
+    119: {name: 'query_streams', message_view_only: false}, // 'w'
+    122: {name: 'zapp', message_view_only: false} // 'z'
 };
 
 function get_hotkey_from_event(e) {
@@ -267,6 +268,16 @@ function process_hotkey(e) {
         case 'stream_cycle_forward':
             navigate.cycle_stream('forward');
             return true;
+        case 'zapp':
+            $(document).off('keydown');
+            $(document).off('keypress');
+            $('#zapp').show();
+            var on_close = function () {
+                $('#zapp').hide();
+                set_handlers();
+            };
+            zapp.open(on_close);
+            return true;
     }
 
     if (current_msg_list.empty()) {
@@ -319,39 +330,43 @@ function process_hotkey(e) {
     return false;
 }
 
-/* We register both a keydown and a keypress function because
-   we want to intercept pgup/pgdn, escape, etc, and process them
-   as they happen on the keyboard. However, if we processed
-   letters/numbers in keydown, we wouldn't know what the case of
-   the letters were.
+function set_handlers() {
+    /* We register both a keydown and a keypress function because
+       we want to intercept pgup/pgdn, escape, etc, and process them
+       as they happen on the keyboard. However, if we processed
+       letters/numbers in keydown, we wouldn't know what the case of
+       the letters were.
 
-   We want case-sensitive hotkeys (such as in the case of r vs R)
-   so we bail in .keydown if the event is a letter or number and
-   instead just let keypress go for it. */
+       We want case-sensitive hotkeys (such as in the case of r vs R)
+       so we bail in .keydown if the event is a letter or number and
+       instead just let keypress go for it. */
 
-$(document).keydown(function (e) {
-    // Restrict to non-alphanumeric keys
-    if (48 > e.which || 90 < e.which) {
-        if (process_hotkey(e)) {
-            e.preventDefault();
+    $(document).keydown(function (e) {
+        // Restrict to non-alphanumeric keys
+        if (48 > e.which || 90 < e.which) {
+            if (process_hotkey(e)) {
+                e.preventDefault();
+            }
         }
-    }
-    resize.resize_bottom_whitespace();
-});
+        resize.resize_bottom_whitespace();
+    });
 
-$(document).keypress(function (e) {
-    // What exactly triggers .keypress may vary by browser.
-    // Welcome to compatability hell.
-    //
-    // In particular, when you press tab in Firefox, it fires a
-    // keypress event with keycode 0 after processing the original
-    // event.
-    if (e.which !== 0 && e.charCode !== 0) {
-        if (process_hotkey(e)) {
-            e.preventDefault();
+    $(document).keypress(function (e) {
+        // What exactly triggers .keypress may vary by browser.
+        // Welcome to compatability hell.
+        //
+        // In particular, when you press tab in Firefox, it fires a
+        // keypress event with keycode 0 after processing the original
+        // event.
+        if (e.which !== 0 && e.charCode !== 0) {
+            if (process_hotkey(e)) {
+                e.preventDefault();
+            }
         }
-    }
-});
+    });
+}
+
+set_handlers();
 
 return exports;
 

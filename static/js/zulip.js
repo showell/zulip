@@ -89,6 +89,15 @@ function main() {
             unread.mark_messages_as_read(messages, {from: 'pointer'});
         }
     });
+
+    var zapp_helper = {
+        apply_markdown: echo.apply_markdown,
+        message_content: compose.message_content,
+        page_params: page_params,
+        people: people,
+    };
+
+    zapp.init($('#zapp'), zapp_helper);
 }
 
 $(function () {

@@ -3538,3 +3538,15 @@ li.show-more-private-messages a {
     margin-left: 5px;
 }
 
+#zapp {
+    background-color: white;
+    height: 100%;
+    width: 100%;
+    margin: auto;
+    z-index: 99999;
+    position: fixed;
+    display: none;
+    overflow: hidden;
+    overflow-y: scroll;
+}
+
