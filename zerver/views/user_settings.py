@@ -5,7 +5,11 @@ from typing import Text
 from django.utils.translation import ugettext as _
 from django.conf import settings
 from django.contrib.auth import authenticate, update_session_auth_hash
+from django.core.mail import send_mail
 from django.http import HttpRequest, HttpResponse
+from django.shortcuts import redirect, render_to_response
+from django.template.loader import render_to_string
+from django.urls import reverse
 
 from zerver.decorator import authenticated_json_post_view, has_request_variables, REQ
 from zerver.lib.actions import do_change_password, \
@@ -17,14 +21,45 @@ from zerver.lib.actions import do_change_password, \
     do_change_enable_stream_desktop_notifications, do_change_enable_stream_sounds, \
     do_regenerate_api_key, do_change_avatar_source, do_change_twenty_four_hour_time, \
     do_change_left_side_userlist, do_change_default_language, \
-    do_change_pm_content_in_desktop_notifications
+    do_change_pm_content_in_desktop_notifications, validate_email, \
+    do_change_user_email, do_start_email_change_process
 from zerver.lib.avatar import avatar_url
 from zerver.lib.i18n import get_available_language_codes
 from zerver.lib.response import json_success, json_error
 from zerver.lib.upload import upload_avatar_image
 from zerver.lib.validator import check_bool, check_string
 from zerver.lib.request import JsonableError
-from zerver.models import UserProfile, Realm, name_changes_disabled
+from zerver.models import UserProfile, Realm, name_changes_disabled, \
+    EmailChangeStatus
+from confirmation.models import EmailChangeConfirmation
+
+def confirm_email_change(request, confirmation_key):
+    # type: (HttpRequest, str) -> HttpResponse
+    confirmation_key = confirmation_key.lower()
+    obj = EmailChangeConfirmation.objects.confirm(confirmation_key)
+    confirmed = False
+    if obj:
+        confirmed = True
+        assert isinstance(obj, EmailChangeStatus)
+        do_change_user_email(obj.user_profile, obj.new_email)
+
+        context = {'support_email': settings.ZULIP_ADMINISTRATOR,
+                   'verbose_support_offers': settings.VERBOSE_SUPPORT_OFFERS,
+                   'realm': obj.user_profile.realm,
+                   'new_email': obj.new_email,
+                   }
+        subject = render_to_string(
+            'confirmation/notify_change_in_email_subject.txt', context)
+        body = render_to_string(
+            'confirmation/notify_change_in_email_body.txt', context)
+        send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [obj.old_email])
+
+    ctx = {
+        'confirmed': confirmed,
+        'support_email': settings.ZULIP_ADMINISTRATOR,
+        'verbose_support_offers': settings.VERBOSE_SUPPORT_OFFERS,
+    }
+    return render_to_response('confirmation/confirm_email_change.html', ctx)
 
 @has_request_variables
 def json_change_ui_settings(request, user_profile,
@@ -52,11 +87,12 @@ def json_change_ui_settings(request, user_profile,
 @has_request_variables
 def json_change_settings(request, user_profile,
                          full_name=REQ(default=""),
+                         email=REQ(default=""),
                          old_password=REQ(default=""),
                          new_password=REQ(default=""),
                          confirm_password=REQ(default="")):
-    # type: (HttpRequest, UserProfile, Text, Text, Text, Text) -> HttpResponse
-    if not (full_name or new_password):
+    # type: (HttpRequest, UserProfile, Text, Text, Text, Text, Text) -> HttpResponse
+    if not (full_name or new_password or email):
         return json_error(_("No new data supplied"))
 
     if new_password != "" or confirm_password != "":
@@ -81,6 +117,16 @@ def json_change_settings(request, user_profile,
         request.session.save()
 
     result = {}
+    new_email = email.strip()
+    if user_profile.email != email and new_email != '':
+        error, skipped = validate_email(user_profile, new_email)
+        if error or skipped:
+            return json_error(error or skipped)
+
+        do_start_email_change_process(user_profile, new_email)
+        result['account.email'] = _('We have sent you an email on your '
+                                    'new email address for confirmation.')
+
     if user_profile.full_name != full_name and full_name.strip() != "":
         if name_changes_disabled(user_profile.realm):
             # Failingly silently is fine -- they can't do it through the UI, so
