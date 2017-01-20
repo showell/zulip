@@ -267,8 +267,12 @@ function _setup_page() {
             }
             return true;
         },
-        success: function () {
-            settings_change_success("Updated settings!");
+        success: function (data) {
+            var msg = "Updated settings!";
+            if ('account.email' in data) {
+                msg += " " + data['account.email'];
+            }
+            settings_change_success(msg);
         },
         error: function (xhr) {
             settings_change_error("Error changing settings", xhr);
@@ -827,6 +831,11 @@ exports.setup_page = function () {
 
 exports.update_page = function () {
     i18n.ensure_i18n(_update_page);
+};
+
+exports.update_email = function (new_email) {
+    // Update the email value in all browser windows.
+    $('.account-settings-form').find('input[name=email]').val(new_email);
 };
 
 return exports;

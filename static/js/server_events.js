@@ -227,6 +227,9 @@ function dispatch_normal_event(event) {
             break;
         }
         break;
+    case 'update_email':
+        settings.update_email(event.payload.new_email);
+        break;
     }
 }
 

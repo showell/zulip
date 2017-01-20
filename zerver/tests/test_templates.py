@@ -81,6 +81,8 @@ class TemplateTestCase(ZulipTestCase):
             'confirmation/mituser_confirmation_email_subject.txt',
             'confirmation/mituser_invite_email_body.txt',
             'confirmation/mituser_invite_email_subject.txt',
+            'confirmation/confirm_new_email_address_subject.txt',
+            'confirmation/notify_change_in_email_subject.txt',
             'corporate/mit.html',
             'corporate/privacy.html',
             'corporate/zephyr.html',

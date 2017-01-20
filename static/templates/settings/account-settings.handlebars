@@ -11,6 +11,11 @@
         <input type="text" name="full_name" value="{{ full_name }}" />
       </div>
 
+      <div class="input-group email_change_container">
+        <label for="email">{{t "Email" }}</label>
+        <input type="text" name="email" value="{{ page_params.email }}" />
+      </div>
+
       <!-- password start -->
       {{#if page_params.password_auth_enabled}}
       <div class="input-group" id="pw_change_link">
