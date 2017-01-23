@@ -346,6 +346,12 @@ def delete_user_profile_caches(user_profiles):
 
     cache_delete_many(keys)
 
+def delete_display_recipient_cache(user_profile):
+    # type: (UserProfile) -> None
+    subscriptions = user_profile.subscription_set.select_related()
+    keys = [display_recipient_cache_key(s.recipient.id) for s in subscriptions]
+    cache_delete_many(keys)
+
 # Called by models.py to flush the user_profile cache whenever we save
 # a user_profile object
 def flush_user_profile(sender, **kwargs):
@@ -359,6 +365,10 @@ def flush_user_profile(sender, **kwargs):
             len(set(active_user_dict_fields + ['is_active', 'email']) &
                 set(kwargs['update_fields'])) > 0:
         cache_delete(active_user_dicts_in_realm_cache_key(user_profile.realm))
+
+    if kwargs.get('updated_fields') is None or \
+            'email' in kwargs['update_fields']:
+        delete_display_recipient_cache(user_profile)
 
     # Invalidate our active_bots_in_realm info dict if any bot has
     # changed the fields in the dict or become (in)active
