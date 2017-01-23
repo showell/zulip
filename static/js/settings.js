@@ -267,12 +267,8 @@ function _setup_page() {
             }
             return true;
         },
-        success: function (data) {
-            var msg = "Updated settings!";
-            if ('account.email' in data) {
-                msg += " " + data['account.email'];
-            }
-            settings_change_success(msg);
+        success: function () {
+            settings_change_success("Updated settings!");
         },
         error: function (xhr) {
             settings_change_error("Error changing settings", xhr);
@@ -490,10 +486,42 @@ function _setup_page() {
         });
     });
 
+    $('#change_email_button').on('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $('#change_email_modal').modal('hide');
+
+        var data = {};
+        data.email = $('.email_change_container').find("input[name='email']").val();
+
+        channel.patch({
+            url: '/json/settings/change',
+            data: data,
+            success: function (data) {
+                if ('account.email' in data) {
+                    settings_change_success(data['account.email']);
+                } else {
+                    settings_change_error(i18n.t("Error changing settings: No new data supplied."));
+                }
+            },
+            error: function (xhr) {
+                settings_change_error("Error changing settings", xhr);
+            },
+        });
+    });
+
     $('#default_language').on('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
         $('#default_language_modal').modal('show');
+    });
+
+    $('#change_email').on('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $('#change_email_modal').modal('show');
+        var email = $('#email_value').text();
+        $('.email_change_container').find("input[name='email']").val(email);
     });
 
     $("#user_deactivate_account_button").on('click', function (e) {
@@ -835,7 +863,7 @@ exports.update_page = function () {
 
 exports.update_email = function (new_email) {
     // Update the email value in all browser windows.
-    $('.account-settings-form').find('input[name=email]').val(new_email);
+    $('#email_value').text(new_email);
 };
 
 return exports;

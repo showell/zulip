@@ -83,3 +83,31 @@ class EmailChangeTestCase(ZulipTestCase):
         user_profile = get_user_profile_by_email('hamlet@zulip.com')
         do_start_email_change_process(user_profile, 'hamlet-new@zulip.com')
         self.assertEqual(EmailChangeStatus.objects.count(), 1)
+
+    def test_post(self):
+        # type: () -> None
+        data = {'email': 'hamlet-new@zulip.com'}
+        email = 'hamlet@zulip.com'
+        self.login(email)
+        url = '/json/settings/change'
+        result = self.client_post(url, data)
+        self.assertIn('We have sent you an email', result.content.decode('utf8'))
+
+    def test_post_invalid_email(self):
+        # type: () -> None
+        data = {'email': 'hamlet-new'}
+        email = 'hamlet@zulip.com'
+        self.login(email)
+        url = '/json/settings/change'
+        result = self.client_post(url, data)
+        self.assertIn('Invalid address', result.content.decode('utf8'))
+
+    def test_post_same_email(self):
+        # type: () -> None
+        data = {'email': 'hamlet@zulip.com'}
+        email = 'hamlet@zulip.com'
+        self.login(email)
+        url = '/json/settings/change'
+        result = self.client_post(url, data)
+        self.assertEqual('success', result.json()['result'])
+        self.assertEqual('', result.json()['msg'])
