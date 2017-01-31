@@ -698,9 +698,10 @@ def do_change_user_email(user_profile, new_email):
     user_profile.email = new_email
     user_profile.save(update_fields=["email"])
 
-    payload = dict(new_email=new_email)
-    send_event(dict(type='update_email', op='update', payload=payload),
-               [user_profile.id])
+    payload = dict(user_id=user_profile.id,
+                   new_email=new_email)
+    send_event(dict(type='realm_user', op='update', person=payload),
+               active_user_ids(user_profile.realm))
 
 def do_start_email_change_process(user_profile, new_email):
     # type: (UserProfile, Text) -> None
