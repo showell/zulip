@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('zerver', '0049_userprofile_pm_content_in_desktop_notifications'),
+        ('zerver', '0050_emailchangestatus'),
     ]
 
     operations = [
