@@ -16,6 +16,10 @@ exports.update_person = function update(person) {
         return;
     }
 
+    if (_.has(person, 'new_email')) {
+        people.update_email(person.user_id, person.new_email);
+    }
+
     if (_.has(person, 'full_name')) {
         people.set_full_name(person_obj, person.full_name);
 
