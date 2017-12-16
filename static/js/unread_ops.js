@@ -16,11 +16,6 @@ exports.mark_all_as_read = function mark_all_as_read(cont) {
 };
 
 function process_newly_read_message(message, options) {
-    // This code gets called when a message becomes newly read, whether
-    // due to local things like advancing the pointer, or due to us
-    // getting notified by the server that a message has been read.
-    unread.set_read_flag(message);
-
     home_msg_list.show_message_as_read(message, options);
     message_list.all.show_message_as_read(message, options);
     if (message_list.narrowed) {
