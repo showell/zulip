@@ -41,8 +41,9 @@ set_global('$', global.make_zjquery());
     show_my_form();
     assert($('#my-form').visible());
 
-    // Next, look at how several functions correctly simulate setting
-    // and getting for you.
+    // Next, look at how several functions simulate setting
+    // and getting.  Supported methods like attr, html, prop,
+    // and val will "round trip" correctly.
     var widget = $('#my-widget');
 
     widget.attr('data-employee-id', 42);
