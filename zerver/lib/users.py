@@ -9,7 +9,8 @@ from zerver.lib.request import JsonableError
 from zerver.models import UserProfile, Service, Realm, \
     get_user_profile_by_id, query_for_ids
 
-from zulip_bots.custom_exceptions import ConfigValidationError
+# from zulip_bots.custom_exceptions import ConfigValidationError
+ConfigValidationError = None
 
 def check_full_name(full_name_raw: Text) -> Text:
     full_name = full_name_raw.strip()

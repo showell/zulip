@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
     ]
 
     database_setting = settings.DATABASES["default"]
-    if "postgres" in database_setting["ENGINE"]:
+    if False:
         operations = [
             migrations.RunSQL("""
 ALTER ROLE %(USER)s SET search_path TO %(SCHEMA)s,public,pgroonga,pg_catalog;

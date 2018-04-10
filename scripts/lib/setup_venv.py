@@ -50,7 +50,11 @@ def install_venv_deps(requirements_file):
     # type: (str) -> None
     pip_requirements = os.path.join(ZULIP_PATH, "requirements", "pip.txt")
     run(["pip", "install", "-U", "--requirement", pip_requirements])
+    print("\n\n\n INSTALL nodeps venv \n\n\n");
+    print(requirements_file)
+    print('\n----\n')
     run(["pip", "install", "--no-deps", "--requirement", requirements_file])
+    print("\n\n\n END INSTALL venv \n\n\n");
 
 def get_index_filename(venv_path):
     # type: (str) -> str

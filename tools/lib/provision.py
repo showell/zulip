@@ -152,7 +152,7 @@ APT_DEPENDENCIES = {
     "xenial": UBUNTU_COMMON_APT_DEPENDENCIES + [
         "postgresql-9.5",
         "postgresql-9.5-tsearch-extras",
-        "postgresql-9.5-pgroonga",
+        # "postgresql-9.5-pgroonga",
         "virtualenv",  # see comment on stretch
     ],
     "zesty": UBUNTU_COMMON_APT_DEPENDENCIES + [
@@ -296,7 +296,7 @@ def main(options):
     run(["tools/setup/emoji/build_emoji"])
 
     # copy over static files from the zulip_bots package
-    run(["tools/setup/generate_zulip_bots_static_files"])
+    # run(["tools/setup/generate_zulip_bots_static_files"])
 
     run(["tools/generate-custom-icon-webfont"])
     run(["tools/setup/build_pygments_data"])

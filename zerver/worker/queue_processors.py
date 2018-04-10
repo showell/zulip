@@ -42,8 +42,8 @@ from zerver.context_processors import common_context
 from zerver.lib.outgoing_webhook import do_rest_call, get_outgoing_webhook_service_handler
 from zerver.models import get_bot_services
 from zulip import Client
-from zulip_bots.lib import extract_query_without_mention
-from zerver.lib.bot_lib import EmbeddedBotHandler, get_bot_handler, EmbeddedBotQuitException
+# from zulip_bots.lib import extract_query_without_mention
+# from zerver.lib.bot_lib import EmbeddedBotHandler, get_bot_handler, EmbeddedBotQuitException
 
 import os
 import sys
@@ -477,42 +477,6 @@ class OutgoingWebhookWorker(QueueProcessingWorker):
             service_handler = get_outgoing_webhook_service_handler(service)
             rest_operation, request_data = service_handler.process_event(dup_event)
             do_rest_call(rest_operation, request_data, dup_event, service_handler)
-
-@assign_queue('embedded_bots')
-class EmbeddedBotWorker(QueueProcessingWorker):
-
-    def get_bot_api_client(self, user_profile: UserProfile) -> EmbeddedBotHandler:
-        return EmbeddedBotHandler(user_profile)
-
-    def consume(self, event: Mapping[str, Any]) -> None:
-        user_profile_id = event['user_profile_id']
-        user_profile = get_user_profile_by_id(user_profile_id)
-
-        message = cast(Dict[str, Any], event['message'])
-
-        # TODO: Do we actually want to allow multiple Services per bot user?
-        services = get_bot_services(user_profile_id)
-        for service in services:
-            bot_handler = get_bot_handler(str(service.name))
-            if bot_handler is None:
-                logging.error("Error: User %s has bot with invalid embedded bot service %s" % (
-                    user_profile_id, service.name))
-                continue
-            try:
-                if hasattr(bot_handler, 'initialize'):
-                        bot_handler.initialize(self.get_bot_api_client(user_profile))
-                if event['trigger'] == 'mention':
-                    message['content'] = extract_query_without_mention(
-                        message=message,
-                        client=self.get_bot_api_client(user_profile),
-                    )
-                    assert message['content'] is not None
-                bot_handler.handle_message(
-                    message=message,
-                    bot_handler=self.get_bot_api_client(user_profile)
-                )
-            except EmbeddedBotQuitException as e:
-                logging.warning(str(e))
 
 @assign_queue('deferred_work')
 class DeferredWorker(QueueProcessingWorker):
