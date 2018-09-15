@@ -14,11 +14,12 @@
 </head>
 <body>
     {{ csrf_input }}
-    hello this is the alt_home app
-
-    <hr />
     <div id='alt_app'>
     </div>
+
+    <div id='elm_app'>
+    </div>
+
     <script>
         (function () {
             var csrf_token = $('input[name="csrfmiddlewaretoken"]').attr('value');
@@ -34,7 +35,8 @@
 
             server_events.initialize();
 
-            example.show_email();
+            elm_bridge.initialize();
+
         }());
     </script>
 </body>

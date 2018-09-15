@@ -1,0 +1,51 @@
+.nav_bar {
+    padding: 12px;
+}
+
+div.status_line {
+    margin: 6px;
+}
+
+.align_right {
+    text-align: right;
+}
+
+.status_line span {
+    background: lightblue;
+    padding: 5px;
+}
+    
+.message_sender {
+    width: 30%;
+    background: #f1edc2;
+}
+
+.message_sender p {
+    font-weight: 600;
+}
+
+.message_content {
+    max-width: 800px;
+    min-width: 300px;
+}
+
+table.message_list {
+    border-collapse: collapse;
+}
+
+.message_list td {
+    border-collapse: collapse;
+    border: 1px solid green;
+}
+
+.message_list tr {
+    vertical-align: top;
+}
+
+.message_content div {
+    margin: 0 10px 0 10px;
+}
+
+p {
+    margin: 16px;
+}

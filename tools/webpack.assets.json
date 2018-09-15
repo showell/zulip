@@ -74,6 +74,7 @@
     "translations": "./static/js/translations.js",
     "zxcvbn": "./node_modules/zxcvbn/dist/zxcvbn.js",
     "alt_app": [
+        "./static/styles/alt/elm.scss",
         "./node_modules/jquery/dist/jquery.js",
         "./node_modules/underscore/underscore.js",
         "./static/js/bundles/alt_app.js"

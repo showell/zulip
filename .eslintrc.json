@@ -10,6 +10,7 @@
         "$": false,
         "ClipboardJS": false,
         "Dict": false,
+        "Elm": false,
         "FetchStatus": false,
         "Filter": false,
         "Handlebars": false,

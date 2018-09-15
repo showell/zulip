@@ -3,7 +3,14 @@ var alt_events = (function () {
 var exports = {};
 
 exports.handle = function (events) {
-    blueslip.log(events);
+    _.each(events, function (event) {
+        if (window.elm_bridge) {
+            if (window.elm_bridge.handle_event(event)) {
+                return;
+            }
+        }
+        blueslip.log(event);
+    });
 };
 
 return exports;
