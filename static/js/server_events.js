@@ -39,6 +39,11 @@ function get_events_success(events) {
         }
     });
 
+    if (window && window.alt_events) {
+        alt_events.handle(events);
+        return;
+    }
+
     if (waiting_on_homeview_load) {
         events_stored_while_loading = events_stored_while_loading.concat(events);
         return;

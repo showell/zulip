@@ -73,6 +73,11 @@
     ],
     "translations": "./static/js/translations.js",
     "zxcvbn": "./node_modules/zxcvbn/dist/zxcvbn.js",
+    "alt_app": [
+        "./node_modules/jquery/dist/jquery.js",
+        "./node_modules/underscore/underscore.js",
+        "./static/js/bundles/alt_app.js"
+    ],
     "app": "./static/js/bundles/app.js",
     "archive-styles": [
         "./node_modules/katex/dist/katex.css",

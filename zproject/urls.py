@@ -522,6 +522,11 @@ i18n_urls = [
         name='dev_not_supported'),
 ]
 
+if settings.DEVELOPMENT:
+    i18n_urls += [
+        url(r'^alt_home$', zerver.views.home.alt_home),
+    ]
+
 # Make a copy of i18n_urls so that they appear without prefix for english
 urls = list(i18n_urls)
 

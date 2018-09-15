@@ -77,26 +77,39 @@ def get_bot_types(user_profile: UserProfile) -> List[Dict[str, object]]:
         })
     return bot_types
 
+def alt_home(request: HttpRequest) -> HttpResponse:
+    return _home(
+        request=request,
+        template='zerver/alt_app/index.html',
+    )
+
 def home(request: HttpRequest) -> HttpResponse:
+    return _home(
+        request=request,
+        template='zerver/app/index.html',
+    )
+
+def _home(request: HttpRequest, template: str) -> HttpResponse:
     if (settings.DEVELOPMENT and not settings.TEST_SUITE and
             os.path.exists('var/handlebars-templates/compile.error')):
         response = render(request, 'zerver/handlebars_compilation_failed.html')
         response.status_code = 500
         return response
     if not settings.ROOT_DOMAIN_LANDING_PAGE:
-        return home_real(request)
+        return home_real(request, template=template)
 
     # If settings.ROOT_DOMAIN_LANDING_PAGE, sends the user the landing
     # page, not the login form, on the root domain
 
     subdomain = get_subdomain(request)
     if subdomain != Realm.SUBDOMAIN_FOR_ROOT_DOMAIN:
-        return home_real(request)
+        return home_real(request, template=template)
 
     return render(request, 'zerver/hello.html')
 
 @zulip_login_required
-def home_real(request: HttpRequest) -> HttpResponse:
+def home_real(request: HttpRequest, template: str) -> HttpResponse:
+
     # We need to modify the session object every two weeks or it will expire.
     # This line makes reloading the page a sufficient action to keep the
     # session alive.
@@ -273,7 +286,7 @@ def home_real(request: HttpRequest) -> HttpResponse:
         # include (and thus how to display emojis in the emoji picker
         # and composebox typeahead).
         emojiset = UserProfile.GOOGLE_EMOJISET
-    response = render(request, 'zerver/app/index.html',
+    response = render(request, template,
                       context={'user_profile': user_profile,
                                'emojiset': emojiset,
                                'page_params': JSONEncoderForHTML().encode(page_params),

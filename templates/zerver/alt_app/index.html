@@ -1,0 +1,40 @@
+<head>
+    <script>
+        {% autoescape off %}
+        var page_params = {{ page_params }};
+        {% endautoescape %}
+
+        ui_report = {};
+
+        ui_report.hide_error = function () {
+        };
+
+    </script>
+    {{ render_bundle('alt_app', attrs='nonce="%s"' % (csp_nonce)) }}
+</head>
+<body>
+    {{ csrf_input }}
+    hello this is the alt_home app
+
+    <hr />
+    <div id='alt_app'>
+    </div>
+    <script>
+        (function () {
+            var csrf_token = $('input[name="csrfmiddlewaretoken"]').attr('value');
+            window.csrf_token = csrf_token;
+            $.ajaxSetup({
+                beforeSend: function (xhr, settings) {
+                    if (!(/^http:.*/.test(settings.url) || /^https:.*/.test(settings.url))) {
+                        // Only send the token to relative URLs i.e. locally.
+                        xhr.setRequestHeader("X-CSRFToken", csrf_token);
+                    }
+                },
+            });
+
+            server_events.initialize();
+
+            example.show_email();
+        }());
+    </script>
+</body>
