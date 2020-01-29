@@ -2890,14 +2890,14 @@ def bulk_add_subscriptions(streams: Iterable[Stream],
 
     already_subscribed = []  # type: List[Tuple[int, Stream]]
     subs_to_activate = []  # type: List[Tuple[Subscription, Stream]]
-    new_subs = []  # type: List[Tuple[UserProfile, int, Stream]]
-    for user_profile in users:
+    new_subs = []  # type: List[Tuple[int, int, Stream]]
+    for user_id in user_ids:
         needs_new_sub = set(recipient_ids)  # type: Set[int]
-        for sub in subs_by_user[user_profile.id]:
+        for sub in subs_by_user[user_id]:
             if sub.recipient_id in needs_new_sub:
                 needs_new_sub.remove(sub.recipient_id)
                 if sub.active:
-                    already_subscribed.append((user_profile.id, stream_map[sub.recipient_id]))
+                    already_subscribed.append((user_id, stream_map[sub.recipient_id]))
                 else:
                     subs_to_activate.append((sub, stream_map[sub.recipient_id]))
                     # Mark the sub as active, without saving, so that
@@ -2905,18 +2905,18 @@ def bulk_add_subscriptions(streams: Iterable[Stream],
                     # subscription when picking colors
                     sub.active = True
         for recipient_id in needs_new_sub:
-            new_subs.append((user_profile, recipient_id, stream_map[recipient_id]))
+            new_subs.append((user_id, recipient_id, stream_map[recipient_id]))
 
     subs_to_add = []  # type: List[Tuple[Subscription, Stream]]
-    for (user_profile, recipient_id, stream) in new_subs:
+    for (user_profile_id, recipient_id, stream) in new_subs:
         if color_map is not None and stream.name in color_map:
             color = color_map[stream.name]
         else:
-            color = pick_color(subs_by_user[user_profile.id])
+            color = pick_color(subs_by_user[user_profile_id])
 
-        sub_to_add = Subscription(user_profile=user_profile, active=True,
+        sub_to_add = Subscription(user_profile_id=user_profile_id, active=True,
                                   color=color, recipient_id=recipient_id)
-        subs_by_user[user_profile.id].append(sub_to_add)
+        subs_by_user[user_profile_id].append(sub_to_add)
         subs_to_add.append((sub_to_add, stream))
 
     # TODO: XXX: This transaction really needs to be done at the serializeable
@@ -2936,7 +2936,7 @@ def bulk_add_subscriptions(streams: Iterable[Stream],
     for (sub, stream) in subs_to_add:
         all_subscription_logs.append(RealmAuditLog(realm=realm,
                                                    acting_user=acting_user,
-                                                   modified_user=sub.user_profile,
+                                                   modified_user_id=sub.user_profile_id,
                                                    modified_stream=stream,
                                                    event_last_message_id=event_last_message_id,
                                                    event_type=RealmAuditLog.SUBSCRIPTION_CREATED,
@@ -2944,7 +2944,7 @@ def bulk_add_subscriptions(streams: Iterable[Stream],
     for (sub, stream) in subs_to_activate:
         all_subscription_logs.append(RealmAuditLog(realm=realm,
                                                    acting_user=acting_user,
-                                                   modified_user=sub.user_profile,
+                                                   modified_user_id=sub.user_profile_id,
                                                    modified_stream=stream,
                                                    event_last_message_id=event_last_message_id,
                                                    event_type=RealmAuditLog.SUBSCRIPTION_ACTIVATED,
@@ -2977,8 +2977,8 @@ def bulk_add_subscriptions(streams: Iterable[Stream],
     sub_tuples_by_user = defaultdict(list)  # type: Dict[int, List[Tuple[Subscription, Stream]]]
     new_streams = set()  # type: Set[Tuple[int, int]]
     for (sub, stream) in subs_to_add + subs_to_activate:
-        sub_tuples_by_user[sub.user_profile.id].append((sub, stream))
-        new_streams.add((sub.user_profile.id, stream.id))
+        sub_tuples_by_user[sub.user_profile_id].append((sub, stream))
+        new_streams.add((sub.user_profile_id, stream.id))
 
     # We now send several types of events to notify browsers.  The
     # first batch is notifications to users on invite-only streams
@@ -2992,8 +2992,8 @@ def bulk_add_subscriptions(streams: Iterable[Stream],
             # they can manage the new stream.
             # Realm admins already have all created private streams.
             realm_admin_ids = [user.id for user in realm.get_admin_users_and_bots()]
-            new_users_ids = [user.id for user in users if (user.id, stream.id) in new_streams and
-                             user.id not in realm_admin_ids]
+            new_users_ids = [user_id for user_id in user_ids if (user_id, stream.id) in new_streams and
+                             user_id not in realm_admin_ids]
             send_stream_creation_event(stream, new_users_ids)
 
     stream_ids = {stream.id for stream in streams}
@@ -3030,8 +3030,8 @@ def bulk_add_subscriptions(streams: Iterable[Stream],
                              user_id=new_user_id)
                 send_event(realm, event, peer_user_ids)
 
-    return ([(user_profile.id, stream) for (user_profile, recipient_id, stream) in new_subs] +
-            [(sub.user_profile.id, stream) for (sub, stream) in subs_to_activate],
+    return ([(user_profile_id, stream) for (user_profile_id, recipient_id, stream) in new_subs] +
+            [(sub.user_profile_id, stream) for (sub, stream) in subs_to_activate],
             already_subscribed)
 
 def get_available_notification_sounds() -> List[str]:
