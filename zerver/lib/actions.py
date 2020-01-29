@@ -59,7 +59,7 @@ from zerver.lib.stream_subscription import (
     get_active_subscriptions_for_stream_ids,
     get_bulk_stream_subscriber_info,
     get_stream_subscriptions_for_user,
-    get_stream_subscriptions_for_users,
+    get_stream_subscriptions_for_user_ids,
     num_subscribers_for_stream_id,
 )
 from zerver.lib.stream_topic import StreamTopicTarget
@@ -2872,6 +2872,7 @@ def bulk_add_subscriptions(streams: Iterable[Stream],
                            from_stream_creation: bool=False,
                            acting_user: Optional[UserProfile]=None) -> SubT:
     users = list(users)
+    user_ids = [user.id for user in users]
 
     recipients_map = dict((stream.id, stream.recipient_id) for stream in streams)  # type: Dict[int, int]
     recipient_ids = [recipient_id for recipient_id in recipients_map.values()]  # type: List[int]
@@ -2881,7 +2882,7 @@ def bulk_add_subscriptions(streams: Iterable[Stream],
         stream_map[recipients_map[stream.id]] = stream
 
     subs_by_user = defaultdict(list)  # type: Dict[int, List[Subscription]]
-    all_subs_query = get_stream_subscriptions_for_users(users).select_related('user_profile')
+    all_subs_query = get_stream_subscriptions_for_user_ids(user_ids).select_related('user_profile')
     for sub in all_subs_query:
         subs_by_user[sub.user_profile_id].append(sub)
 
