@@ -350,6 +350,11 @@ def add_subscriptions_backend(
     else:
         subscribers = set([user_profile])
 
+    # We can eventually eliminate this dictionary if we
+    # decide to just send back user_ids in responses/events
+    # to clients rather than emails and/or bigger user objects.
+    subscriber_dct = {user.id: user for user in subscribers}
+
     (subscribed, already_subscribed) = bulk_add_subscriptions(streams, subscribers,
                                                               acting_user=user_profile, color_map=color_map)
 
@@ -358,10 +363,12 @@ def add_subscriptions_backend(
     email_to_user_profile = dict()  # type: Dict[str, UserProfile]
 
     result = dict(subscribed=defaultdict(list), already_subscribed=defaultdict(list))  # type: Dict[str, Any]
-    for (subscriber, stream) in subscribed:
+    for (subscriber_id, stream) in subscribed:
+        subscriber = subscriber_dct[subscriber_id]
         result["subscribed"][subscriber.email].append(stream.name)
         email_to_user_profile[subscriber.email] = subscriber
-    for (subscriber, stream) in already_subscribed:
+    for (subscriber_id, stream) in already_subscribed:
+        subscriber = subscriber_dct[subscriber_id]
         result["already_subscribed"][subscriber.email].append(stream.name)
 
     bots = dict((subscriber.email, subscriber.is_bot) for subscriber in subscribers)

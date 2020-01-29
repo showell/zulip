@@ -2865,7 +2865,7 @@ def get_last_message_id() -> int:
         last_id = -1
     return last_id
 
-SubT = Tuple[List[Tuple[UserProfile, Stream]], List[Tuple[UserProfile, Stream]]]
+SubT = Tuple[List[Tuple[int, Stream]], List[Tuple[int, Stream]]]
 def bulk_add_subscriptions(streams: Iterable[Stream],
                            users: Iterable[UserProfile],
                            color_map: Optional[Dict[str, str]]=None,
@@ -2888,7 +2888,7 @@ def bulk_add_subscriptions(streams: Iterable[Stream],
 
     realm = users[0].realm
 
-    already_subscribed = []  # type: List[Tuple[UserProfile, Stream]]
+    already_subscribed = []  # type: List[Tuple[int, Stream]]
     subs_to_activate = []  # type: List[Tuple[Subscription, Stream]]
     new_subs = []  # type: List[Tuple[UserProfile, int, Stream]]
     for user_profile in users:
@@ -2897,7 +2897,7 @@ def bulk_add_subscriptions(streams: Iterable[Stream],
             if sub.recipient_id in needs_new_sub:
                 needs_new_sub.remove(sub.recipient_id)
                 if sub.active:
-                    already_subscribed.append((user_profile, stream_map[sub.recipient_id]))
+                    already_subscribed.append((user_profile.id, stream_map[sub.recipient_id]))
                 else:
                     subs_to_activate.append((sub, stream_map[sub.recipient_id]))
                     # Mark the sub as active, without saving, so that
@@ -3030,8 +3030,8 @@ def bulk_add_subscriptions(streams: Iterable[Stream],
                              user_id=new_user_id)
                 send_event(realm, event, peer_user_ids)
 
-    return ([(user_profile, stream) for (user_profile, recipient_id, stream) in new_subs] +
-            [(sub.user_profile, stream) for (sub, stream) in subs_to_activate],
+    return ([(user_profile.id, stream) for (user_profile, recipient_id, stream) in new_subs] +
+            [(sub.user_profile.id, stream) for (sub, stream) in subs_to_activate],
             already_subscribed)
 
 def get_available_notification_sounds() -> List[str]:
