@@ -88,6 +88,7 @@ zrequire('invite');
 zrequire('tab_bar');
 zrequire('narrow_state');
 zrequire('people');
+zrequire('presence');
 zrequire('search_pill_widget');
 zrequire('user_groups');
 zrequire('unread');
@@ -144,6 +145,7 @@ page_params.never_subscribed = [];
 page_params.realm_notifications_stream_id = -1;
 page_params.unread_msgs = {};
 page_params.recent_private_conversations = [];
+page_params.presences = [];
 
 $('#tab_bar').append = () => {};
 $('#compose').filedrop = () => {};
