@@ -98,3 +98,80 @@ for mobile development][mobile-dev-server].
 [new-feature-tutorial]: ../tutorials/new-feature-tutorial.md
 [testing-docs]: ../testing/testing.md
 [mobile-dev-server]: https://github.com/zulip/zulip-mobile/blob/master/docs/howto/dev-server.md#using-a-dev-version-of-the-server
+
+## Databases
+
+In almost all Zulip development you will at least want to
+be aware of the various databases we use for manual and
+automated testing, even if you are working mostly on
+frontend code.
+
+Here are the main databases that you need to know about:
+
+- `zulip_base`
+- `zulip`
+- `zulip_test_base`
+- `zulip_test`
+- `zulip_test_template`
+
+### Dev databases
+
+`zulip_base` is created in `postgres-init-dev-db`.  It
+becomes the template for our **manual testing** (aka "dev")
+database, or `zulip`.  It will always remain basically
+empty, only holding structural things like schemas.
+
+`zulip` is created from `zulip_base` via
+`postgres-init-dev-db`.  It can also be freshly
+created from `zulip_base` in `rebuild-dev-database`,
+where it also gets populated with data.
+
+When we run `run-dev.py` with normal options, we
+use `zproject/dev_settings.py`, which has us using
+the `zulip` database.  We log in as the `zulip` user
+with the `zulip` schema, and our password is
+`local_database_password` from `dev-secrets.conf`.
+
+### Test databases
+
+`zulip_test_base` is created in `postgres-init-test-db`.  It
+becomes the template for our **automated testing** (aka "test")
+databases.
+
+`zulip_test` is created from `zulip_test_base` via
+`postgres-init-test-db`.  It can also be freshly
+created from `zulip_test_base` in `rebuild-test-database`,
+where it also gets actual data.
+
+`zulip_test_template` is originally created from
+`zulip_test` in `rebuild-test-database`.  You can
+think of it like a backup to `zulip_test`.  Later,
+when we run `generate-fixtures`, we go in the other
+direction, creating `zulip_test` from `zulip_test_template`.
+
+When we run `test-api` or `test-js-with-casper`, we
+use the `test_server_running` context manager that launches
+`run-dev.py` with the `--test` flag, so we use
+the database overrides from `test_settings.py`.
+We log into the `zulip_test` database using the
+`zulip_test` user account and the `zulip` schema.
+And we use the `local_database_password` field from
+`dev-secrets.conf` as our password.
+
+How do we know the `zulip_test` database is **clean**?
+Well, before we actually launch `run-dev.py` for
+the above tools, the `test_server_running` context
+manager calls into `update_test_databases_if_required`
+with the `rebuild_test_database` flag set to `True`.
+The `update_test_databases_if_required` code resides
+in `zerver/lib/test_fixtures.py`.
+
+If `update_test_databases_if_required` detects
+that `zulip_test_template` is out of date, it will
+rebuild that database or run migrations.  Usually,
+it simply runs `generate-fixtures`, which creates
+a new copy of the `zulip_test` database from
+`zulip_test_template`.
+
+
+TODO: explain test-backend
