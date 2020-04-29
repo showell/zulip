@@ -12,10 +12,12 @@ fi
 
 if [[ "$MODE" == "dev" ]]; then
     USERNAME=zulip
+    DBNAME_BASE=zulip_base
     DBNAME=zulip
     STATUS_FILE_NAME=migration_status_dev
 elif [[ "$MODE" == "test" ]]; then
     USERNAME=zulip_test
+    DBNAME_BASE=zulip_test_base
     DBNAME=zulip_test
     STATUS_FILE_NAME=migration_status_test
 else
@@ -47,7 +49,6 @@ VAGRANTUSERNAME=$(whoami)
 
 SEARCH_PATH=zulip,public
 PASSWORD=$("$(dirname "$0")/../../scripts/get-django-setting" LOCAL_DATABASE_PASSWORD)
-DBNAME_BASE=${DBNAME}_base
 
 if ! pg_isready -U "$POSTGRES_USER" -q; then
     set +x
