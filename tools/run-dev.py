@@ -70,6 +70,8 @@ parser.add_argument('--enable-tornado-logging',
                     default=False, help='Enable access logs from tornado proxy server.')
 options = parser.parse_args()
 
+IS_CASPER = 'CASPER_TESTS' in os.environ
+
 assert_provisioning_status_ok(options.force)
 
 if options.interface is None:
@@ -319,6 +321,9 @@ class ErrorHandler(BaseHandler):
         self.write('path not supported')
         self.finish()
 
+def using_webpack_server() -> bool:
+    return not options.test or IS_CASPER
+
 def using_thumbor() -> bool:
     return not options.streamlined
 
@@ -327,7 +332,7 @@ class Application(web.Application):
         handlers = [
             (r"/json/events.*", TornadoHandler),
             (r"/api/v1/events.*", TornadoHandler),
-            (r"/webpack.*", WebPackHandler),
+            (r"/webpack.*", WebPackHandler if using_webpack_server() else ErrorHandler),
             (r"/thumbor.*", ThumborHandler if using_thumbor() else ErrorHandler),
             (r"/.*", DjangoHandler)
         ]
@@ -357,7 +362,7 @@ def print_listeners() -> None:
         (tornado_port, 'Tornado'),
     ]
 
-    if not options.test:
+    if using_webpack_server():
         ports.append((webpack_port, 'webpack'))
 
     if using_thumbor():
@@ -370,10 +375,10 @@ def print_listeners() -> None:
     proxy_warning = f"Only the proxy port ({proxy_port}) is exposed."
     print(WARNING + "Note to Vagrant users: " + ENDC + proxy_warning + '\n')
 
-if options.test:
-    do_one_time_webpack_compile()
-else:
+if using_webpack_server():
     start_webpack_watcher()
+else:
+    do_one_time_webpack_compile()
 
 for cmd in server_processes():
     subprocess.Popen(cmd)
