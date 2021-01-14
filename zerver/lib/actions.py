@@ -248,6 +248,7 @@ class SubscriptionInfo:
     subscriptions: List[Dict[str, Any]]
     unsubscribed: List[Dict[str, Any]]
     never_subscribed: List[Dict[str, Any]]
+    user_streams: Optional[Dict[int, List[int]]]
 
 # This will be used to type annotate parameters in a function if the function
 # works on both str and unicode in python 2 but in python 3 it only works on str.
@@ -2677,8 +2678,27 @@ def bulk_get_subscriber_user_ids(
     stream_dicts: Iterable[Mapping[str, Any]],
     user_profile: UserProfile,
     subscribed_stream_ids: Set[int],
+    by_user: bool,
 ) -> Dict[int, List[int]]:
-    """sub_dict maps stream_id => whether the user is subscribed to that stream."""
+    """
+        The result here has the same primitive type regardless of by_user,
+        but the semantics depend:
+
+            if by_user:
+                result = dict of user_id -> list of stream_ids
+            else:
+                result = dict of stream_id -> list of user_ids
+
+        The by_user flag was introduced in 2021 to allow for
+        better compression of subscriber data over the wire.
+        Most users have a very similar set of stream_ids that they
+        subscribe to, especially the large population of users
+        who may join the realm and never subscribe to anything
+        but the default streams.
+    """
+
+    # Before we do a big query, we first determine which streams
+    # our user is actually allowed to view.
     target_stream_dicts = []
     for stream_dict in stream_dicts:
         stream_id = stream_dict["id"]
@@ -2697,7 +2717,11 @@ def bulk_get_subscriber_user_ids(
     recip_to_stream_id = {stream["recipient_id"]: stream["id"] for stream in target_stream_dicts}
     recipient_ids = sorted([stream["recipient_id"] for stream in target_stream_dicts])
 
-    result: Dict[int, List[int]] = {stream["id"]: [] for stream in stream_dicts}
+    if by_user:
+        result: Dict[int, List[int]] = {}
+    else:
+        result = {stream["id"]: [] for stream in stream_dicts}
+
     if not recipient_ids:
         return result
 
@@ -2708,7 +2732,7 @@ def bulk_get_subscriber_user_ids(
     to optimize.)
     '''
 
-    query = SQL('''
+    query = '''
         SELECT
             zerver_subscription.recipient_id,
             zerver_subscription.user_profile_id
@@ -2720,13 +2744,22 @@ def bulk_get_subscriber_user_ids(
             zerver_subscription.recipient_id in %(recipient_ids)s AND
             zerver_subscription.active AND
             zerver_userprofile.is_active
-        ORDER BY
-            zerver_subscription.recipient_id,
-            zerver_subscription.user_profile_id
-        ''')
+        '''
+
+    if by_user:
+        query += '''
+            ORDER BY
+                zerver_subscription.user_profile_id
+            '''
+    else:
+        query += '''
+            ORDER BY
+                zerver_subscription.recipient_id,
+                zerver_subscription.user_profile_id
+            '''
 
     cursor = connection.cursor()
-    cursor.execute(query, {"recipient_ids": tuple(recipient_ids)})
+    cursor.execute(SQL(query), {"recipient_ids": tuple(recipient_ids)})
     rows = cursor.fetchall()
     cursor.close()
 
@@ -2734,10 +2767,17 @@ def bulk_get_subscriber_user_ids(
     Using groupby/itemgetter here is important for performance, at scale.
     It makes it so that all interpreter overhead is just O(N) in nature.
     '''
-    for recip_id, recip_rows in itertools.groupby(rows, itemgetter(0)):
-        user_profile_ids = [r[1] for r in recip_rows]
-        stream_id = recip_to_stream_id[recip_id]
-        result[stream_id] = list(user_profile_ids)
+    if by_user:
+        for peer_user_id, recip_rows in itertools.groupby(rows, itemgetter(1)):
+            recip_ids = [r[0] for r in recip_rows]
+            stream_ids = [recip_to_stream_id[recip_id] for recip_id in recip_ids]
+            stream_ids.sort()
+            result[peer_user_id] = stream_ids
+    else:
+        for recip_id, recip_rows in itertools.groupby(rows, itemgetter(0)):
+            user_profile_ids = [r[1] for r in recip_rows]
+            stream_id = recip_to_stream_id[recip_id]
+            result[stream_id] = list(user_profile_ids)
 
     return result
 
@@ -5004,6 +5044,7 @@ def get_web_public_subs(realm: Realm) -> SubscriptionInfo:
         subscriptions=subscribed,
         unsubscribed=[],
         never_subscribed=[],
+        user_streams=None,
     )
 
 def build_stream_dict_for_sub(
@@ -5078,7 +5119,11 @@ def build_stream_dict_for_never_sub(
 def gather_subscriptions_helper(
     user_profile: UserProfile,
     include_subscribers: bool=True,
+    include_user_streams: bool=False,
 ) -> SubscriptionInfo:
+    # The two options below are mutually exclusive.
+    assert not (include_subscribers and include_user_streams)
+
     realm = user_profile.realm
     all_streams = get_active_streams(realm).values(
         *Stream.API_FIELDS,
@@ -5157,7 +5202,7 @@ def gather_subscriptions_helper(
 
             never_subscribed.append(stream_dict)
 
-    if include_subscribers:
+    if include_user_streams or include_subscribers:
         # The highly optimized bulk_get_subscriber_user_ids wants to know which
         # streams we are subscribed to, for validation purposes, and it uses that
         # info to know if it's allowed to find OTHER subscribers.
@@ -5167,16 +5212,19 @@ def gather_subscriptions_helper(
             all_streams,
             user_profile,
             subscribed_stream_ids,
+            by_user=include_user_streams,
         )
 
-        for lst in [subscribed, unsubscribed, never_subscribed]:
-            for sub in lst:
-                sub["subscribers"] = subscriber_map[sub["stream_id"]]
+        if include_subscribers:
+            for lst in [subscribed, unsubscribed, never_subscribed]:
+                for sub in lst:
+                    sub["subscribers"] = subscriber_map[sub["stream_id"]]
 
     return SubscriptionInfo(
         subscriptions=sorted(subscribed, key=lambda x: x['name']),
         unsubscribed=sorted(unsubscribed, key=lambda x: x['name']),
         never_subscribed=sorted(never_subscribed, key=lambda x: x['name']),
+        user_streams=subscriber_map if include_user_streams else None,
     )
 
 def gather_subscriptions(

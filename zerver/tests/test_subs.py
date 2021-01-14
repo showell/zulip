@@ -101,6 +101,7 @@ class TestMiscStuff(ZulipTestCase):
             stream_dicts=[],
             user_profile=user_profile,
             subscribed_stream_ids=set(),
+            by_user=False,
         )
         self.assertEqual(result, {})
 
@@ -4242,6 +4243,67 @@ class GetSubscribersTest(ZulipTestCase):
                 continue
             self.assertTrue(len(sub["subscribers"]) == len(users_to_subscribe))
         self.assert_length(queries, 5)
+
+    def test_include_user_streams(self) -> None:
+        hamlet = self.example_user("hamlet")
+        cordelia = self.example_user("cordelia")
+        guest = self.example_user("polonius")
+
+        Subscription.objects.update(active=False)
+        public1 = self.make_stream("public1")
+        public2 = self.make_stream("public2")
+        public3 = self.make_stream("public3")
+
+        private1 = self.make_stream("private1", invite_only=True)
+        private2 = self.make_stream("private2", invite_only=True)
+        private3 = self.make_stream("private3", invite_only=True)
+
+        self.subscribe(hamlet, "public2")
+        self.subscribe(hamlet, "public3")
+        self.subscribe(hamlet, "private2")
+        self.subscribe(hamlet, "private3")
+
+        self.subscribe(cordelia, "public1")
+        self.subscribe(cordelia, "public2")
+        self.subscribe(cordelia, "private1")
+        self.subscribe(cordelia, "private2")
+
+        self.subscribe(guest, "public2")
+        self.subscribe(guest, "private1")
+        self.subscribe(guest, "private3")
+
+        def get_user_streams(user: UserProfile) -> Dict[int, List[int]]:
+            helper_result = gather_subscriptions_helper(
+                user_profile=user,
+                include_subscribers=False,
+                include_user_streams=True,
+            )
+            user_streams = helper_result.user_streams
+            assert user_streams is not None
+            return user_streams
+
+        user_streams = get_user_streams(cordelia)
+
+        self.assertEqual(user_streams.keys(), {cordelia.id, hamlet.id, guest.id})
+
+        # stream ids should be sorted, so do strict checks here
+        self.assertEqual(user_streams[cordelia.id], [public1.id, public2.id, private1.id, private2.id])
+
+        # We can't see that Hamlet has subscribed to private3,
+        # since Cordelia herself is not subscribed.  But she
+        # **can** see public3, since it's public.
+        self.assertEqual(user_streams[hamlet.id], [public2.id, public3.id, private2.id])
+
+        self.assertEqual(user_streams[guest.id], [public2.id, private1.id])
+
+        user_streams = get_user_streams(guest)
+
+        self.assertEqual(user_streams.keys(), {cordelia.id, hamlet.id, guest.id})
+
+        # The only public stream the guest sees is the one he subscribes to (public2).
+        self.assertEqual(user_streams[guest.id], [public2.id, private1.id, private3.id])
+        self.assertEqual(user_streams[cordelia.id], [public2.id, private1.id])
+        self.assertEqual(user_streams[hamlet.id], [public2.id, private3.id])
 
     def test_never_subscribed_streams(self) -> None:
         """
