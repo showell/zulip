@@ -210,6 +210,7 @@ class HomeTest(ZulipTestCase):
         "upgrade_text_for_wide_organization_logo",
         "user_id",
         "user_status",
+        "user_streams",
         "warn_no_email",
         "webpack_public_path",
         "wildcard_mentions_notify",
@@ -297,6 +298,7 @@ class HomeTest(ZulipTestCase):
             'last_event_id',
             'narrow',
             'narrow_stream',
+            'user_streams',
         ]
         expected_keys = [i for i in self.expected_page_params_keys if i not in removed_keys]
         self.assertEqual(actual_keys, expected_keys)
@@ -641,6 +643,35 @@ class HomeTest(ZulipTestCase):
                 is_guest=False,
             ),
         ], key=by_email))
+
+    def test_user_streams(self) -> None:
+        # See test_include_user_streams in test_subs.py for a more thorough
+        # test of the underlying logic for building the user_streams data
+        # structure.  This test just verifies that we have the bit of glue code
+        # to get it into page_params.
+        cordelia = self.example_user("cordelia")
+        hamlet = self.example_user("hamlet")
+        test_stream = self.subscribe(hamlet, "test stream")
+        self.login_user(hamlet)
+        result = self._get_home_page()
+        page_params = self._get_page_params(result)
+        self.assertIn(test_stream.id, page_params["user_streams"][str(hamlet.id)])
+        self.assertNotIn(test_stream.id, page_params["user_streams"][str(cordelia.id)])
+
+        # A guest won't see Hamlet's subscription to test_stream.
+        guest = self.example_user("polonius")
+        assert guest.is_guest
+        self.login_user(guest)
+        result = self._get_home_page()
+        page_params = self._get_page_params(result)
+        self.assertNotIn(test_stream.id, page_params["user_streams"][str(hamlet.id)])
+
+        # But if we subscribe our guest, they will see Hamlet as a peer.
+        self.subscribe(guest, "test stream")
+        self.login_user(guest)
+        result = self._get_home_page()
+        page_params = self._get_page_params(result)
+        self.assertIn(test_stream.id, page_params["user_streams"][str(hamlet.id)])
 
     def test_new_stream(self) -> None:
         user_profile = self.example_user("hamlet")

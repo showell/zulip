@@ -60,6 +60,31 @@ function contains_sub(subs, sub) {
     return subs.some((s) => s.name === sub.name);
 }
 
+run_test("initialize", () => {
+    const empty_params = {};
+    empty_params[fred.user_id.toString()] = [];
+    empty_params[gail.user_id.toString()] = [];
+    empty_params[george.user_id.toString()] = [];
+    peer_data.initialize(empty_params);
+
+    assert.deepEqual(peer_data.get_subscribers(rome.stream_id), []);
+    assert.deepEqual(peer_data.get_subscribers(devel.stream_id), []);
+    assert(!peer_data.is_user_subscribed(devel.stream_id, fred.user_id));
+
+    const params = {};
+    params[fred.user_id.toString()] = [devel.stream_id, rome.stream_id];
+    params[george.user_id.toString()] = [rome.stream_id];
+    peer_data.initialize(params);
+
+    assert(peer_data.is_user_subscribed(devel.stream_id, fred.user_id));
+    assert(peer_data.is_user_subscribed(rome.stream_id, fred.user_id));
+    assert(!peer_data.is_user_subscribed(devel.stream_id, george.user_id));
+    assert(peer_data.is_user_subscribed(rome.stream_id, george.user_id));
+
+    peer_data.initialize(empty_params);
+    assert(!peer_data.is_user_subscribed(devel.stream_id, fred.user_id));
+});
+
 run_test("unsubscribe", () => {
     // verify clean slate
     assert(!stream_data.is_subscribed("devel"));

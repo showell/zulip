@@ -134,6 +134,8 @@ def build_page_params_for_home_page_load(
             slim_presence=True,
             client_capabilities=client_capabilities,
             narrow=narrow,
+            include_subscribers=False,
+            include_user_streams=True,
             include_streams=False,
         )
     else:
@@ -150,6 +152,7 @@ def build_page_params_for_home_page_load(
             user_avatar_url_field_optional=client_capabilities['user_avatar_url_field_optional'],
             slim_presence=False,
             include_subscribers=False,
+            include_user_streams=False,
             include_streams=False
         )
 

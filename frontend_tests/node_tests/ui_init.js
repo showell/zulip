@@ -168,6 +168,7 @@ page_params.realm_bots = [];
 page_params.realm_filters = [];
 page_params.starred_messages = [];
 page_params.presences = [];
+page_params.user_streams = {};
 
 const $message_view_header = $.create("#message_view_header");
 $message_view_header.append = () => {};

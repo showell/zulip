@@ -10,6 +10,7 @@ const render_edit_content_button = require("../templates/edit_content_button.hbs
 
 const emojisets = require("./emojisets");
 const markdown_config = require("./markdown_config");
+const peer_data = require("./peer_data");
 const people = require("./people");
 const pm_conversations = require("./pm_conversations");
 
@@ -400,6 +401,8 @@ exports.initialize_everything = function () {
 
     const people_params = pop_fields("realm_users", "realm_non_active_users", "cross_realm_bots");
 
+    const peer_data_params = pop_fields("user_streams");
+
     const pm_conversations_params = pop_fields("recent_private_conversations");
 
     const presence_params = pop_fields("presences", "initial_servertime");
@@ -424,6 +427,11 @@ exports.initialize_everything = function () {
     echo.initialize();
     stream_color.initialize();
     stream_edit.initialize();
+
+    blueslip.measure_time("peer_data.initialize", () => {
+        peer_data.initialize(peer_data_params.user_streams);
+    });
+
     stream_data.initialize(stream_data_params);
     pm_conversations.recent.initialize(pm_conversations_params);
     muting.initialize();

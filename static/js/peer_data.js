@@ -138,3 +138,22 @@ export function is_user_subscribed(stream_id, user_id) {
     const subscribers = get_user_set(stream_id);
     return subscribers.has(user_id);
 }
+
+export function initialize(user_streams) {
+    stream_subscribers.clear();
+    const stream_map = new Map();
+
+    for (const [user_id_str, stream_ids] of Object.entries(user_streams)) {
+        const user_id = Number.parseInt(user_id_str, 10);
+        for (const stream_id of stream_ids) {
+            if (!stream_map.has(stream_id)) {
+                stream_map.set(stream_id, []);
+            }
+            stream_map.get(stream_id).push(user_id);
+        }
+    }
+
+    for (const [stream_id, user_ids] of stream_map.entries()) {
+        set_subscribers(stream_id, user_ids);
+    }
+}

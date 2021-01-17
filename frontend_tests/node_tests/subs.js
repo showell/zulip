@@ -11,6 +11,7 @@ set_global("ui", {
     get_content_element: (element) => element,
     get_scroll_element: (element) => element,
 });
+const peer_data = zrequire("peer_data");
 zrequire("stream_data");
 zrequire("search_util");
 set_global("page_params", {});
@@ -94,6 +95,8 @@ run_test("filter_table", () => {
     ];
 
     for (const sub of sub_row_data) {
+        peer_data.set_subscribers(sub.stream_id, sub.subscribers);
+        delete sub.subscribers;
         stream_data.create_sub_from_server_data(sub);
     }
 

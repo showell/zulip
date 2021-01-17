@@ -91,6 +91,7 @@ def fetch_initial_state_data(
     user_avatar_url_field_optional: bool = False,
     slim_presence: bool = False,
     include_subscribers: bool = True,
+    include_user_streams: bool = False,
     include_streams: bool = True,
 ) -> Dict[str, Any]:
     """When `event_types` is None, fetches the core data powering the
@@ -339,7 +340,14 @@ def fetch_initial_state_data(
             sub_info = gather_subscriptions_helper(
                 user_profile,
                 include_subscribers=include_subscribers,
+                include_user_streams=include_user_streams,
             )
+            if include_user_streams:
+                assert sub_info.user_streams is not None
+                state["user_streams"] = {
+                    str(k): v
+                    for k, v in sub_info.user_streams.items()
+                }
         else:
             sub_info = get_web_public_subs(realm)
 
@@ -426,6 +434,7 @@ def apply_events(
     client_gravatar: bool,
     slim_presence: bool,
     include_subscribers: bool,
+    include_user_streams: bool
 ) -> None:
     for event in events:
         if fetch_event_types is not None and event['type'] not in fetch_event_types:
@@ -445,6 +454,7 @@ def apply_events(
             client_gravatar=client_gravatar,
             slim_presence=slim_presence,
             include_subscribers=include_subscribers,
+            include_user_streams=include_user_streams,
         )
 
 def apply_event(
@@ -455,7 +465,11 @@ def apply_event(
     client_gravatar: bool,
     slim_presence: bool,
     include_subscribers: bool,
+    include_user_streams: bool,
 ) -> None:
+    # The two options below are mutually exclusive.
+    assert not (include_subscribers and include_user_streams)
+
     if event['type'] == "message":
         state['max_message_id'] = max(state['max_message_id'], event['message']['id'])
         if 'raw_unread_msgs' in state:
@@ -537,10 +551,18 @@ def apply_event(
                         sub_info = gather_subscriptions_helper(
                             user_profile,
                             include_subscribers=include_subscribers,
+                            include_user_streams=include_user_streams,
                         )
                         state['subscriptions'] = sub_info.subscriptions
                         state['unsubscribed'] = sub_info.unsubscribed
                         state['never_subscribed'] = sub_info.never_subscribed
+
+                        if include_user_streams:
+                            assert sub_info.user_streams is not None
+                            state["user_streams"] = {
+                                str(k): v
+                                for k, v in sub_info.user_streams.items()
+                            }
 
                     if 'streams' in state:
                         state['streams'] = do_get_streams(user_profile)
@@ -710,6 +732,12 @@ def apply_event(
 
             # add the new subscriptions
             for sub in event["subscriptions"]:
+                if include_user_streams:
+                    for user_id in sub["subscribers"]:
+                        existing_stream_ids = state["user_streams"].get(str(user_id), [])
+                        final_stream_ids = set(existing_stream_ids) | {sub["stream_id"]}
+                        state["user_streams"][str(user_id)] = sorted(list(final_stream_ids))
+
                 if sub["stream_id"] not in existing_stream_ids:
                     if "subscribers" in sub and not include_subscribers:
                         sub = copy.deepcopy(sub)
@@ -734,6 +762,13 @@ def apply_event(
                 for sub in removed_subs:
                     sub['subscribers'].remove(user_profile.id)
 
+            if include_user_streams:
+                for sub in removed_subs:
+                    try:
+                        state["user_streams"][str(user_profile.id)].remove(sub["stream_id"])
+                    except ValueError:  # nocoverage
+                        pass
+
             state['unsubscribed'] += removed_subs
 
             # Now filter out the removed subscriptions from subscriptions.
@@ -753,6 +788,14 @@ def apply_event(
                         if sub["stream_id"] in stream_ids:
                             subscribers = set(sub["subscribers"]) | user_ids
                             sub["subscribers"] = sorted(list(subscribers))
+
+            elif include_user_streams:
+                new_stream_ids = set(event["stream_ids"])
+                for user_id in event["user_ids"]:
+                    existing_stream_ids = state["user_streams"].get(str(user_id), [])
+                    updated_stream_ids = set(existing_stream_ids) | new_stream_ids
+                    state["user_streams"][str(user_id)] = sorted(list(updated_stream_ids))
+
         elif event['op'] == 'peer_remove':
             if include_subscribers:
                 stream_ids = set(event["stream_ids"])
@@ -763,6 +806,14 @@ def apply_event(
                         if sub["stream_id"] in stream_ids:
                             subscribers = set(sub["subscribers"]) - user_ids
                             sub["subscribers"] = sorted(list(subscribers))
+
+            elif include_user_streams:
+                removed_stream_ids = set(event["stream_ids"])
+                for user_id in event["user_ids"]:
+                    existing_stream_ids = state["user_streams"].get(str(user_id), [])
+                    updated_stream_ids = set(existing_stream_ids) - removed_stream_ids
+                    state["user_streams"][str(user_id)] = sorted(list(updated_stream_ids))
+
     elif event['type'] == "presence":
         if slim_presence:
             user_key = str(event['user_id'])
@@ -946,6 +997,7 @@ def do_events_register(
     all_public_streams: bool = False,
     include_subscribers: bool = True,
     include_streams: bool = True,
+    include_user_streams: bool = False,
     client_capabilities: Dict[str, bool] = {},
     narrow: Iterable[Sequence[str]] = [],
     fetch_event_types: Optional[Iterable[str]] = None
@@ -993,6 +1045,7 @@ def do_events_register(
         user_avatar_url_field_optional=user_avatar_url_field_optional,
         slim_presence=slim_presence,
         include_subscribers=include_subscribers,
+        include_user_streams=include_user_streams,
         include_streams=include_streams,
     )
 
@@ -1006,6 +1059,7 @@ def do_events_register(
         client_gravatar=client_gravatar,
         slim_presence=slim_presence,
         include_subscribers=include_subscribers,
+        include_user_streams=include_user_streams,
     )
 
     post_process_state(user_profile, ret, notification_settings_null)

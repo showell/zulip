@@ -716,17 +716,10 @@ exports.create_sub_from_server_data = function (attrs) {
         return sub;
     }
 
-    // Our internal data structure for subscriptions is mostly plain dictionaries,
-    // so we just reuse the attrs that are passed in to us, but we encapsulate how
-    // we handle subscribers.  We defensively remove the `subscribers` field from
-    // the original `attrs` object, which will get thrown away.  (We used to make
-    // a copy of the object with `_.omit(attrs, 'subscribers')`, but `_.omit` is
-    // slow enough to show up in timings when you have 1000s of streams.
-
-    const subscriber_user_ids = attrs.subscribers;
-
-    delete attrs.subscribers;
-
+    // Our internal data structure for subscriptions is mostly plain
+    // dictionaries, so we just reuse the attrs that are passed in to us.  Note
+    // that we don't track **other** subscribers here; that is covered via
+    // page_params.user_streams and peer_data.js.
     sub = {
         name: attrs.name,
         render_subscribers: !page_params.realm_is_zephyr_mirror_realm || attrs.invite_only === true,
@@ -744,8 +737,6 @@ exports.create_sub_from_server_data = function (attrs) {
         first_message_id: attrs.first_message_id,
         ...attrs,
     };
-
-    peer_data.set_subscribers(sub.stream_id, subscriber_user_ids);
 
     if (!sub.color) {
         sub.color = color_data.pick_color();
