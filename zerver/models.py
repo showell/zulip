@@ -3259,7 +3259,14 @@ class Subscription(models.Model):
 
 @cache_with_key(user_profile_by_id_cache_key, timeout=3600 * 24 * 7)
 def get_user_profile_by_id(uid: int) -> UserProfile:
-    return UserProfile.objects.select_related().get(id=uid)
+    print("start")
+    from zerver.lib.db import start_track, stop_track
+    start_track()
+    obj = UserProfile.objects.select_related().get(id=uid)
+    stop_track()
+
+    print("done")
+    return obj
 
 
 def get_user_profile_by_email(email: str) -> UserProfile:

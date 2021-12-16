@@ -178,7 +178,11 @@ def cache_with_key(
             key = keyfunc(*args, **kwargs)
 
             try:
+                t = time.time()
                 val = cache_get(key, cache_name=cache_name)
+                duration = time.time() - t
+                # import traceback; traceback.print_stack();
+                print(val, duration)
             except InvalidCacheKeyException:
                 stack_trace = traceback.format_exc()
                 log_invalid_cache_keys(stack_trace, [key])
@@ -249,6 +253,7 @@ def validate_cache_key(key: str) -> None:
 def cache_set(
     key: str, val: Any, cache_name: Optional[str] = None, timeout: Optional[int] = None
 ) -> None:
+    print(val)
     final_key = KEY_PREFIX + key
     validate_cache_key(final_key)
 
@@ -336,6 +341,7 @@ def cache_delete(key: str, cache_name: Optional[str] = None) -> None:
     validate_cache_key(final_key)
 
     remote_cache_stats_start()
+    logging.info(f"DELETE {key}")
     get_cache_backend(cache_name).delete(final_key)
     remote_cache_stats_finish()
 
@@ -343,6 +349,7 @@ def cache_delete(key: str, cache_name: Optional[str] = None) -> None:
 def cache_delete_many(items: Iterable[str], cache_name: Optional[str] = None) -> None:
     keys = [KEY_PREFIX + item for item in items]
     for key in keys:
+        logging.info(f"DELETE {key}")
         validate_cache_key(key)
     remote_cache_stats_start()
     get_cache_backend(cache_name).delete_many(keys)

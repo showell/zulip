@@ -9,6 +9,16 @@ Query = Union[str, Composable]
 Params = Union[Sequence[object], Mapping[str, object]]
 ParamsT = TypeVar("ParamsT")
 
+TRACKING = False
+
+def start_track():
+    global TRACKING
+    TRACKING = True
+
+def stop_track():
+    global TRACKING
+    TRACKING = False
+
 # Similar to the tracking done in Django's CursorDebugWrapper, but done at the
 # psycopg2 cursor level so it works with SQLAlchemy.
 def wrapper_execute(
@@ -20,12 +30,13 @@ def wrapper_execute(
     finally:
         stop = time.time()
         duration = stop - start
+        if TRACKING:
+            print(duration, sql)
         self.connection.queries.append(
             {
                 "time": f"{duration:.3f}",
             }
         )
-
 
 class TimeTrackingCursor(cursor):
     """A psycopg2 cursor class that tracks the time spent executing queries."""

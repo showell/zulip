@@ -139,6 +139,7 @@ def update_active_status_backend(
     new_user_input: bool = REQ(json_validator=check_bool, default=False),
     slim_presence: bool = REQ(json_validator=check_bool, default=False),
 ) -> HttpResponse:
+    print("apple")
     status_val = UserPresence.status_from_string(status)
     if status_val is None:
         raise JsonableError(_("Invalid status: {}").format(status))
@@ -147,10 +148,12 @@ def update_active_status_backend(
         assert client is not None
         update_user_presence(user_profile, client, timezone_now(), status_val, new_user_input)
 
+    print("banana")
     if ping_only:
         ret: Dict[str, Any] = {}
     else:
         ret = get_presence_response(user_profile, slim_presence)
+    print("carrot")
 
     if user_profile.realm.is_zephyr_mirror_realm:
         # In zephyr mirroring realms, users can't see the presence of other
