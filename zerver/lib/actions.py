@@ -5627,18 +5627,19 @@ def consolidate_client(client: Client) -> Client:
 
 @statsd_increment("user_presence")
 def do_update_user_presence(
-    user_profile: UserProfile, client: Client, log_time: datetime.datetime, status: int
+    *, user_id int, realm_id, int, client: Client, log_time: datetime.datetime, status: int,
+    realm_presence_disabled: bool = False,
 ) -> None:
     client = consolidate_client(client)
 
     defaults = dict(
         timestamp=log_time,
         status=status,
-        realm_id=user_profile.realm_id,
+        realm_id=realm_id,
     )
 
     (presence, created) = UserPresence.objects.get_or_create(
-        user_profile=user_profile,
+        user_profile_id=user_id,
         client=client,
         defaults=defaults,
     )
@@ -5666,7 +5667,7 @@ def do_update_user_presence(
             update_fields.append("status")
         presence.save(update_fields=update_fields)
 
-    if not user_profile.realm.presence_disabled and (created or became_online):
+    if not realm_presence_disabled and (created or became_online):
         send_presence_changed(user_profile, presence)
 
 
