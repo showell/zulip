@@ -1,3 +1,4 @@
+import logging
 from collections import defaultdict
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Union, cast
 
@@ -492,6 +493,7 @@ def add_subscriptions_backend(
     ),
     authorization_errors_fatal: bool = REQ(json_validator=check_bool, default=True),
 ) -> HttpResponse:
+    logging.info("starting")
     realm = user_profile.realm
     stream_dicts = []
     color_map = {}
@@ -521,6 +523,7 @@ def add_subscriptions_backend(
     # Validation of the streams arguments, including enforcement of
     # can_create_streams policy and check_stream_name policy is inside
     # list_to_streams.
+    logging.info("about to call list_to_streams")
     existing_streams, created_streams = list_to_streams(stream_dicts, user_profile, autocreate=True)
     authorized_streams, unauthorized_streams = filter_stream_authorization(
         user_profile, existing_streams
@@ -546,11 +549,15 @@ def add_subscriptions_backend(
     else:
         principals = [user_profile.id]
 
+    logging.info("before get_slim_users")
     subscribers = get_validated_users(realm.id, principals)
+    logging.info("after get_slim_users")
 
+    logging.info("before bulk_add_subscriptions")
     (subscribed, already_subscribed) = bulk_add_subscriptions(
         realm, streams, subscribers, acting_user=user_profile, color_map=color_map
     )
+    logging.info("after bulk_add_subscriptions")
 
     # We can assume unique emails here for now, but we should eventually
     # convert this function to be more id-centric.
@@ -572,6 +579,7 @@ def add_subscriptions_backend(
     result["subscribed"] = dict(result["subscribed"])
     result["already_subscribed"] = dict(result["already_subscribed"])
 
+    logging.info("before send_messages_for_new_subscribers")
     send_messages_for_new_subscribers(
         user_profile=user_profile,
         subscribers=subscribers,
@@ -580,6 +588,7 @@ def add_subscriptions_backend(
         created_streams=created_streams,
         announce=announce,
     )
+    logging.info("after send_messages_for_new_subscribers")
 
     result["subscribed"] = dict(result["subscribed"])
     result["already_subscribed"] = dict(result["already_subscribed"])
@@ -612,6 +621,7 @@ def send_messages_for_new_subscribers(
     # or if a new stream was created with the "announce" option.
     notifications = []
     if new_subscriptions:
+        logging.info("before loop over internal_prep_private_message")
         for email, subscribed_stream_names in new_subscriptions.items():
             if email == user_profile.email:
                 # Don't send a Zulip if you invited yourself.
@@ -644,6 +654,8 @@ def send_messages_for_new_subscribers(
                     content=msg,
                 )
             )
+
+    logging.info("after loop")
 
     if announce and len(created_streams) > 0:
         notifications_stream = user_profile.realm.get_notifications_stream()
@@ -686,6 +698,7 @@ def send_messages_for_new_subscribers(
                     ),
                 )
 
+    logging.info("before do_send_messages")
     if len(notifications) > 0:
         do_send_messages(notifications, mark_as_read=[user_profile.id])
 

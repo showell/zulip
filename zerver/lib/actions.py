@@ -3868,8 +3868,11 @@ def bulk_add_subscriptions(
         if color is not None:
             recipient_color_map[stream.recipient_id] = color
 
+    import logging
+    logging.info("before get_used_colors_for_user_ids")
     used_colors_for_user_ids: Dict[int, Set[str]] = get_used_colors_for_user_ids(user_ids)
 
+    logging.info("before finding existing subs")
     existing_subs = Subscription.objects.filter(
         user_profile_id__in=user_ids,
         recipient__type=Recipient.STREAM,
@@ -3880,6 +3883,7 @@ def bulk_add_subscriptions(
     for sub in existing_subs:
         subs_by_user[sub.user_profile_id].append(sub)
 
+    logging.info("before big loop")
     already_subscribed: List[SubInfo] = []
     subs_to_activate: List[SubInfo] = []
     subs_to_add: List[SubInfo] = []
@@ -3918,6 +3922,7 @@ def bulk_add_subscriptions(
             sub_info = SubInfo(user_profile, sub, stream)
             subs_to_add.append(sub_info)
 
+    logging.info("before bulk_add_subs_to_db_with_logging")
     bulk_add_subs_to_db_with_logging(
         realm=realm,
         acting_user=acting_user,
@@ -3933,6 +3938,7 @@ def bulk_add_subscriptions(
 
     new_streams = [stream_dict[stream_id] for stream_id in altered_user_dict]
 
+    logging.info("before bulk_get_subscriber_peer_info")
     subscriber_peer_info = bulk_get_subscriber_peer_info(
         realm=realm,
         streams=new_streams,
@@ -3949,12 +3955,14 @@ def bulk_add_subscriptions(
             altered_user_dict=altered_user_dict,
         )
 
+        logging.info("before send_subscription_add_events")
         send_subscription_add_events(
             realm=realm,
             sub_info_list=subs_to_add + subs_to_activate,
             subscriber_dict=subscriber_peer_info.subscribed_ids,
         )
 
+    logging.info("before send_peer_subscriber_events")
     send_peer_subscriber_events(
         op="peer_add",
         realm=realm,
