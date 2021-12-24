@@ -3994,7 +3994,7 @@ def bulk_add_subs_to_db_with_logging(
             RealmAuditLog(
                 realm=realm,
                 acting_user=acting_user,
-                modified_user=sub_info.user,
+                modified_user_id=sub_info.user.id,
                 modified_stream=sub_info.stream,
                 event_last_message_id=event_last_message_id,
                 event_type=RealmAuditLog.SUBSCRIPTION_CREATED,
@@ -4006,7 +4006,7 @@ def bulk_add_subs_to_db_with_logging(
             RealmAuditLog(
                 realm=realm,
                 acting_user=acting_user,
-                modified_user=sub_info.user,
+                modified_user_id=sub_info.user.id,
                 modified_stream=sub_info.stream,
                 event_last_message_id=event_last_message_id,
                 event_type=RealmAuditLog.SUBSCRIPTION_ACTIVATED,
@@ -4235,7 +4235,7 @@ def bulk_remove_subscriptions(
             RealmAuditLog(
                 realm=sub_info.user.realm,
                 acting_user=acting_user,
-                modified_user=sub_info.user,
+                modified_user_id=sub_info.user.id,
                 modified_stream=sub_info.stream,
                 event_last_message_id=event_last_message_id,
                 event_type=RealmAuditLog.SUBSCRIPTION_DEACTIVATED,
