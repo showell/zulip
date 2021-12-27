@@ -89,10 +89,21 @@ from zerver.models import (
     get_user,
     get_user_profile_by_id_in_realm,
 )
-from zerver.views.streams import compose_views
+from zerver.views.streams import compose_views, get_validated_users
 
 
 class TestMiscStuff(ZulipTestCase):
+    def test_get_validated_users(self) -> None:
+        cordelia = self.example_user("cordelia")
+        realm = cordelia.realm
+        self.assertEqual(get_validated_users(realm.id, []), [])
+
+        (user,) = get_validated_users(realm.id, [cordelia.id])
+        self.assertEqual(user.email, cordelia.email)
+
+        (user,) = get_validated_users(realm.id, [cordelia.email])
+        self.assertEqual(user.email, cordelia.email)
+
     def test_test_helper(self) -> None:
         cordelia = self.example_user("cordelia")
         s = self.subscribed_stream_name_list(cordelia)
@@ -1845,7 +1856,7 @@ class StreamAdminTest(ZulipTestCase):
             self.example_user(name) for name in ["cordelia", "prospero", "iago", "hamlet", "ZOE"]
         ]
         result = self.attempt_unsubscribe_of_principal(
-            query_count=31,
+            query_count=27,
             cache_count=9,
             target_users=target_users,
             is_realm_admin=True,
@@ -1917,7 +1928,7 @@ class StreamAdminTest(ZulipTestCase):
             self.example_user(name) for name in ["cordelia", "prospero", "othello", "hamlet", "ZOE"]
         ]
         result = self.attempt_unsubscribe_of_principal(
-            query_count=31,
+            query_count=27,
             cache_count=9,
             target_users=target_users,
             is_realm_admin=False,
@@ -1976,7 +1987,7 @@ class StreamAdminTest(ZulipTestCase):
 
     def test_admin_remove_multiple_users_from_stream_legacy_emails(self) -> None:
         result = self.attempt_unsubscribe_of_principal(
-            query_count=20,
+            query_count=19,
             target_users=[self.example_user("cordelia"), self.example_user("prospero")],
             is_realm_admin=True,
             is_subbed=True,
@@ -3708,7 +3719,7 @@ class SubscriptionAPITest(ZulipTestCase):
                     streams_to_sub,
                     dict(principals=orjson.dumps([user1.id, user2.id]).decode()),
                 )
-        self.assert_length(queries, 36)
+        self.assert_length(queries, 35)
 
         for ev in [x for x in events if x["event"]["type"] not in ("message", "stream")]:
             if ev["event"]["op"] == "add":
@@ -4117,9 +4128,7 @@ class SubscriptionAPITest(ZulipTestCase):
                         dict(principals=orjson.dumps(test_user_ids).decode()),
                     )
 
-        # The only known O(N) behavior here is that we call
-        # principal_to_user_profile for each of our users.
-        self.assert_length(queries, 19)
+        self.assert_length(queries, 14)
         self.assert_length(cache_tries, 4)
 
     def test_subscriptions_add_for_principal(self) -> None:
@@ -4580,7 +4589,7 @@ class SubscriptionAPITest(ZulipTestCase):
                 [new_streams[0]],
                 dict(principals=orjson.dumps([user1.id, user2.id]).decode()),
             )
-        self.assert_length(queries, 36)
+        self.assert_length(queries, 35)
 
         # Test creating private stream.
         with queries_captured() as queries:
@@ -4590,7 +4599,7 @@ class SubscriptionAPITest(ZulipTestCase):
                 dict(principals=orjson.dumps([user1.id, user2.id]).decode()),
                 invite_only=True,
             )
-        self.assert_length(queries, 35)
+        self.assert_length(queries, 34)
 
         # Test creating a public stream with announce when realm has a notification stream.
         notifications_stream = get_stream(self.streams[0], self.test_realm)
@@ -4605,7 +4614,7 @@ class SubscriptionAPITest(ZulipTestCase):
                     principals=orjson.dumps([user1.id, user2.id]).decode(),
                 ),
             )
-        self.assert_length(queries, 44)
+        self.assert_length(queries, 43)
 
 
 class GetStreamsTest(ZulipTestCase):

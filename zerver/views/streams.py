@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Union, cast
 
 import orjson
 from django.conf import settings
@@ -87,15 +87,7 @@ from zerver.lib.validator import (
     check_union,
     to_non_negative_int,
 )
-from zerver.models import (
-    Realm,
-    Stream,
-    UserMessage,
-    UserProfile,
-    get_active_user,
-    get_active_user_profile_by_id_in_realm,
-    get_system_bot,
-)
+from zerver.models import Realm, Stream, UserMessage, UserProfile, get_system_bot, query_for_ids
 
 
 class PrincipalError(JsonableError):
@@ -111,18 +103,33 @@ class PrincipalError(JsonableError):
         return _("User not authorized to execute queries on behalf of '{principal}'")
 
 
-def principal_to_user_profile(agent: UserProfile, principal: Union[str, int]) -> UserProfile:
-    try:
-        if isinstance(principal, str):
-            return get_active_user(principal, agent.realm)
-        else:
-            return get_active_user_profile_by_id_in_realm(principal, agent.realm)
-    except UserProfile.DoesNotExist:
-        # We have to make sure we don't leak information about which users
-        # are registered for Zulip in a different realm.  We could do
-        # something a little more clever and check the domain part of the
-        # principal to maybe give a better error message
-        raise PrincipalError(principal)
+def get_validated_users(
+    realm_id: int, principals: Union[Sequence[str], Sequence[int]]
+) -> List[UserProfile]:
+    if not principals:
+        return []
+
+    using_emails = type(principals[0]) == str
+    if using_emails:
+        query = UserProfile.objects.filter(email__in=principals)
+    else:
+        user_ids = list(cast(Sequence[int], principals))
+        query = query_for_ids(UserProfile.objects.all(), user_ids, "zerver_userprofile.id")
+
+    users = list(query.filter(realm_id=realm_id, is_active=True).select_related("realm"))
+
+    if using_emails:
+        final_emails = {user.email for user in users}
+        for email in principals:
+            if email not in final_emails:
+                raise PrincipalError(email)
+    else:
+        final_user_ids = {user.id for user in users}
+        for user_id in user_ids:
+            if user_id not in final_user_ids:
+                raise PrincipalError(user_id)
+
+    return users
 
 
 def check_if_removing_someone_else(
@@ -416,12 +423,10 @@ def remove_subscriptions_backend(
         streams_as_dict, user_profile, admin_access_required=removing_someone_else
     )
 
-    if principals:
-        people_to_unsub = {
-            principal_to_user_profile(user_profile, principal) for principal in principals
-        }
-    else:
-        people_to_unsub = {user_profile}
+    if not principals:
+        principals = [user_profile.id]
+
+    people_to_unsub = get_validated_users(user_profile.realm_id, principals)
 
     result: Dict[str, List[str]] = dict(removed=[], not_removed=[])
     (removed, not_subscribed) = bulk_remove_subscriptions(
@@ -537,11 +542,10 @@ def add_subscriptions_backend(
             # Guest users case will not be handled here as it will
             # be handled by the decorator above.
             raise JsonableError(_("Insufficient permission"))
-        subscribers = {
-            principal_to_user_profile(user_profile, principal) for principal in principals
-        }
     else:
-        subscribers = {user_profile}
+        principals = [user_profile.id]
+
+    subscribers = get_validated_users(realm.id, principals)
 
     (subscribed, already_subscribed) = bulk_add_subscriptions(
         realm, streams, subscribers, acting_user=user_profile, color_map=color_map
@@ -585,7 +589,7 @@ def add_subscriptions_backend(
 
 def send_messages_for_new_subscribers(
     user_profile: UserProfile,
-    subscribers: Set[UserProfile],
+    subscribers: List[UserProfile],
     new_subscriptions: Dict[str, List[str]],
     email_to_user_profile: Dict[str, UserProfile],
     created_streams: List[Stream],
