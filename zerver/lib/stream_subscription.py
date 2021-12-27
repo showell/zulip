@@ -6,12 +6,13 @@ from typing import AbstractSet, Any, Dict, List, Optional, Set
 
 from django.db.models import Q, QuerySet
 
+from zerver.lib.slim_user import SlimUser
 from zerver.models import AlertWord, Realm, Recipient, Stream, Subscription, UserProfile
 
 
 @dataclass
 class SubInfo:
-    user: UserProfile
+    user: SlimUser
     sub: Subscription
     stream: Stream
 
@@ -93,14 +94,15 @@ def get_used_colors_for_user_ids(user_ids: List[int]) -> Dict[int, Set[str]]:
 
 
 def get_bulk_stream_subscriber_info(
-    users: List[UserProfile],
+    users: List[SlimUser],
     streams: List[Stream],
 ) -> Dict[int, List[SubInfo]]:
 
+    user_ids = {user.id for user in users}
     stream_ids = {stream.id for stream in streams}
 
     subs = Subscription.objects.filter(
-        user_profile__in=users,
+        user_profile_id__in=user_ids,
         recipient__type=Recipient.STREAM,
         recipient__type_id__in=stream_ids,
         active=True,

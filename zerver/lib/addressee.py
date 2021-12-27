@@ -4,6 +4,7 @@ from typing import Iterable, List, Optional, Sequence, Union, cast
 from django.utils.translation import gettext as _
 
 from zerver.lib.exceptions import JsonableError
+from zerver.lib.slim_user import SlimUser
 from zerver.models import (
     Realm,
     Stream,
@@ -63,7 +64,7 @@ class Addressee:
     def __init__(
         self,
         msg_type: str,
-        user_profiles: Optional[Sequence[UserProfile]] = None,
+        user_profiles: Optional[Sequence[SlimUser]] = None,
         stream: Optional[Stream] = None,
         stream_name: Optional[str] = None,
         stream_id: Optional[int] = None,
@@ -85,7 +86,7 @@ class Addressee:
     def is_private(self) -> bool:
         return self._msg_type == "private"
 
-    def user_profiles(self) -> Sequence[UserProfile]:
+    def user_profiles(self) -> Sequence[SlimUser]:
         assert self.is_private()
         assert self._user_profiles is not None
         return self._user_profiles
@@ -204,7 +205,7 @@ class Addressee:
         )
 
     @staticmethod
-    def for_user_profile(user_profile: UserProfile) -> "Addressee":
+    def for_user_profile(user_profile: SlimUser) -> "Addressee":
         user_profiles = [user_profile]
         return Addressee(
             msg_type="private",

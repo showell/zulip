@@ -54,6 +54,7 @@ from zerver.lib.mention import silent_mention_syntax_for_user
 from zerver.lib.request import REQ, has_request_variables
 from zerver.lib.response import json_success
 from zerver.lib.retention import parse_message_retention_days
+from zerver.lib.slim_user import SlimUser, get_slim_users
 from zerver.lib.streams import (
     StreamDict,
     access_default_stream_group_by_id,
@@ -105,7 +106,7 @@ class PrincipalError(JsonableError):
 
 def get_validated_users(
     realm_id: int, principals: Union[Sequence[str], Sequence[int]]
-) -> List[UserProfile]:
+) -> List[SlimUser]:
     if not principals:
         return []
 
@@ -116,7 +117,7 @@ def get_validated_users(
         user_ids = list(cast(Sequence[int], principals))
         query = query_for_ids(UserProfile.objects.all(), user_ids, "zerver_userprofile.id")
 
-    users = list(query.filter(realm_id=realm_id, is_active=True).select_related("realm"))
+    users = get_slim_users(query.filter(realm_id=realm_id, is_active=True))
 
     if using_emails:
         final_emails = {user.email for user in users}
@@ -442,7 +443,7 @@ def remove_subscriptions_backend(
 
 
 def you_were_just_subscribed_message(
-    acting_user: UserProfile, recipient_user: UserProfile, stream_names: Set[str]
+    acting_user: UserProfile, recipient_user: SlimUser, stream_names: Set[str]
 ) -> str:
     subscriptions = sorted(stream_names)
     if len(subscriptions) == 1:
@@ -553,7 +554,7 @@ def add_subscriptions_backend(
 
     # We can assume unique emails here for now, but we should eventually
     # convert this function to be more id-centric.
-    email_to_user_profile: Dict[str, UserProfile] = {}
+    email_to_user_profile: Dict[str, SlimUser] = {}
 
     result: Dict[str, Any] = dict(
         subscribed=defaultdict(list), already_subscribed=defaultdict(list)
@@ -589,9 +590,9 @@ def add_subscriptions_backend(
 
 def send_messages_for_new_subscribers(
     user_profile: UserProfile,
-    subscribers: List[UserProfile],
+    subscribers: List[SlimUser],
     new_subscriptions: Dict[str, List[str]],
-    email_to_user_profile: Dict[str, UserProfile],
+    email_to_user_profile: Dict[str, SlimUser],
     created_streams: List[Stream],
     announce: bool,
 ) -> None:

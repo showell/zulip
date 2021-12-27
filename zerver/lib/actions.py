@@ -127,6 +127,7 @@ from zerver.lib.send_email import (
 )
 from zerver.lib.server_initialization import create_internal_realm, server_initialized
 from zerver.lib.sessions import delete_user_sessions
+from zerver.lib.slim_user import SlimUser
 from zerver.lib.storage import static_path
 from zerver.lib.stream_subscription import (
     SubInfo,
@@ -2621,7 +2622,7 @@ def ensure_stream(
 
 
 def get_recipient_from_user_profiles(
-    recipient_profiles: Sequence[UserProfile],
+    recipient_profiles: Sequence[SlimUser],
     forwarded_mirror_message: bool,
     forwarder_user_profile: Optional[UserProfile],
     sender: UserProfile,
@@ -2665,9 +2666,9 @@ def get_recipient_from_user_profiles(
 
 
 def validate_recipient_user_profiles(
-    user_profiles: Sequence[UserProfile], sender: UserProfile, allow_deactivated: bool = False
-) -> Sequence[UserProfile]:
-    recipient_profiles_map: Dict[int, UserProfile] = {}
+    user_profiles: Sequence[SlimUser], sender: UserProfile, allow_deactivated: bool = False
+) -> Sequence[SlimUser]:
+    recipient_profiles_map: Dict[int, SlimUser] = {}
 
     # We exempt cross-realm bots from the check that all the recipients
     # are in the same realm.
@@ -2695,7 +2696,7 @@ def validate_recipient_user_profiles(
 
 
 def recipient_for_user_profiles(
-    user_profiles: Sequence[UserProfile],
+    user_profiles: Sequence[SlimUser],
     forwarded_mirror_message: bool,
     forwarder_user_profile: Optional[UserProfile],
     sender: UserProfile,
@@ -3271,7 +3272,7 @@ def validate_stream_id_with_pm_notification(
 
 
 def check_private_message_policy(
-    realm: Realm, sender: UserProfile, user_profiles: Sequence[UserProfile]
+    realm: Realm, sender: UserProfile, user_profiles: Sequence[SlimUser]
 ) -> None:
     if realm.private_message_policy == Realm.PRIVATE_MESSAGE_POLICY_DISABLED:
         if sender.is_bot or (len(user_profiles) == 1 and user_profiles[0].is_bot):
@@ -3525,7 +3526,7 @@ def internal_prep_stream_message_by_name(
 
 
 def internal_prep_private_message(
-    realm: Realm, sender: UserProfile, recipient_user: UserProfile, content: str
+    realm: Realm, sender: UserProfile, recipient_user: SlimUser, content: str
 ) -> Optional[SendMessageRequest]:
     """
     See _internal_prep_message for details of how this works.
@@ -3842,7 +3843,7 @@ SubT = Tuple[List[SubInfo], List[SubInfo]]
 def bulk_add_subscriptions(
     realm: Realm,
     streams: Collection[Stream],
-    users: Iterable[UserProfile],
+    users: Iterable[SlimUser],
     color_map: Mapping[str, str] = {},
     from_user_creation: bool = False,
     *,
@@ -3908,7 +3909,7 @@ def bulk_add_subscriptions(
             color = user_color_map[recipient_id]
 
             sub = Subscription(
-                user_profile=user_profile,
+                user_profile_id=user_profile.id,
                 is_user_active=user_profile.is_active,
                 active=True,
                 color=color,
@@ -4157,7 +4158,7 @@ def get_available_notification_sounds() -> List[str]:
 
 
 def notify_subscriptions_removed(
-    realm: Realm, user_profile: UserProfile, streams: Iterable[Stream]
+    realm: Realm, user_profile: SlimUser, streams: Iterable[Stream]
 ) -> None:
 
     payload = [dict(name=stream.name, stream_id=stream.id) for stream in streams]
@@ -4165,12 +4166,12 @@ def notify_subscriptions_removed(
     send_event(realm, event, [user_profile.id])
 
 
-SubAndRemovedT = Tuple[List[Tuple[UserProfile, Stream]], List[Tuple[UserProfile, Stream]]]
+SubAndRemovedT = Tuple[List[Tuple[SlimUser, Stream]], List[Tuple[SlimUser, Stream]]]
 
 
 def bulk_remove_subscriptions(
     realm: Realm,
-    users: Iterable[UserProfile],
+    users: Iterable[SlimUser],
     streams: Iterable[Stream],
     *,
     acting_user: Optional[UserProfile],
@@ -4190,10 +4191,10 @@ def bulk_remove_subscriptions(
 
     existing_subs_by_user = get_bulk_stream_subscriber_info(users, streams)
 
-    def get_non_subscribed_subs() -> List[Tuple[UserProfile, Stream]]:
+    def get_non_subscribed_subs() -> List[Tuple[SlimUser, Stream]]:
         stream_ids = {stream.id for stream in streams}
 
-        not_subscribed: List[Tuple[UserProfile, Stream]] = []
+        not_subscribed: List[Tuple[SlimUser, Stream]] = []
 
         for user_profile in users:
             user_sub_stream_info = existing_subs_by_user[user_profile.id]
@@ -4233,7 +4234,7 @@ def bulk_remove_subscriptions(
         event_last_message_id = get_last_message_id()
         all_subscription_logs = [
             RealmAuditLog(
-                realm=sub_info.user.realm,
+                realm_id=sub_info.user.realm_id,
                 acting_user=acting_user,
                 modified_user_id=sub_info.user.id,
                 modified_stream=sub_info.stream,
