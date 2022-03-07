@@ -20,6 +20,16 @@ format used by the Zulip server that they are interacting with.
 
 ## Changes in Zulip 5.0
 
+**Feature level 119**
+
+* [`POST /register`](/api/register-queue): The `unread_msgs` section
+  of the response now prefers `other_user_id` over the poorly
+  named `sender_id` field in the `pms` dictionaries.
+
+  The historical reason that `sender_id` never caused terrible
+  confusion in the past is that unread PMs would only come from
+  your peers, but that will change when we support mark-as-unread.
+
 **Feature level 118**
 
 * [`GET /messages`](/api/get-messages), [`GET

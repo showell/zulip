@@ -9341,10 +9341,16 @@ paths:
                                 message with a specific user.
                               additionalProperties: false
                               properties:
-                                sender_id:
+                                other_user_id:
                                   type: integer
                                   description: |
-                                    The user id of the other participant in a PM conversation.
+                                    The user id of the other participant in a PM conversation (which could be yourself).
+                                sender_id:
+                                  deprecated: true
+                                  type: integer
+                                  description: |
+                                    This is old (and misleading) name for other_user_id.
+                                    **Changes**: Deprecated in Zulip 5.9 (feature level 119)
                                 message_ids:
                                   type: array
                                   description: |
