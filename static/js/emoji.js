@@ -63,7 +63,7 @@ function build_emoticon_translations() {
         });
     }
 
-    emoticon_translations = translations;
+    return translations;
 }
 
 const zulip_emoji = {
@@ -247,7 +247,7 @@ export function get_emoji_details_for_rendering(opts) {
 export function initialize(params) {
     emoji_codes = params.emoji_codes;
 
-    build_emoticon_translations();
+    emoticon_translations = build_emoticon_translations();
 
     for (const value of emoji_codes.names) {
         const base_name = get_emoji_codepoint(value);
