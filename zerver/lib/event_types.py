@@ -95,7 +95,7 @@ class StreamGroup(BaseModel):
 
 
 class DefaultStreamGroupsEvent(BaseEvent):
-    type: Literal["default_stream_groups"]
+    type: Literal["default_stream_groups"] = "default_stream_groups"
     default_stream_groups: list[StreamGroup]
 
 
