@@ -32,7 +32,9 @@ def list_realm_custom_profile_fields(
     request: HttpRequest, user_profile: UserProfile
 ) -> HttpResponse:
     fields = custom_profile_fields_for_realm(user_profile.realm_id)
-    return json_success(request, data={"custom_fields": [f.as_dict() for f in fields]})
+    return json_success(
+        request, data={"custom_fields": [f.as_pydantic().model_dump() for f in fields]}
+    )
 
 
 hint_validator = check_capped_string(CustomProfileField.HINT_MAX_LENGTH)

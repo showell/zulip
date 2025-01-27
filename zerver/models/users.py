@@ -696,18 +696,18 @@ class UserProfile(AbstractBaseUser, PermissionsMixin, UserBaseSettings):
                 converter = field.FIELD_CONVERTERS[field_type]
                 value = converter(value)
 
-            field_data = field.as_dict()
+            info = field.as_pydantic()
             data.append(
-                {
-                    "id": field_data["id"],
-                    "name": field_data["name"],
-                    "type": field_data["type"],
-                    "hint": field_data["hint"],
-                    "field_data": field_data["field_data"],
-                    "order": field_data["order"],
-                    "value": value,
-                    "rendered_value": rendered_value,
-                }
+                dict(
+                    id=info.id,
+                    name=info.name,
+                    type=info.type,
+                    hint=info.hint,
+                    field_data=info.field_data,
+                    order=info.order,
+                    value=value,
+                    rendered_value=rendered_value,
+                )
             )
 
         return data

@@ -1,4 +1,4 @@
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
@@ -66,7 +66,7 @@ class AttachmentUpdateEvent(BaseEvent):
     upload_space_used: int
 
 
-class DetailedCustomProfileCore(BaseModel):
+class DetailedCustomProfile(BaseModel):
     id: int
     type: int
     name: str
@@ -75,15 +75,28 @@ class DetailedCustomProfileCore(BaseModel):
     order: int
     required: bool
     editable_by_user: bool
-
-
-class DetailedCustomProfile(DetailedCustomProfileCore):
-    # TODO: fix types to avoid optional fields
     display_in_profile_summary: bool | None = None
+
+    def model_dump(self) -> Any:  # type: ignore[explicit-override, override]
+        field_value = BaseModel.model_dump(self)
+        if not field_value["display_in_profile_summary"]:
+            del field_value["display_in_profile_summary"]
+        return field_value
 
 
 class CustomProfileFieldsEvent(BaseEvent):
-    type: Literal["custom_profile_fields"]
+    type: Literal["custom_profile_fields"] = "custom_profile_fields"
+
+    def model_dump(self) -> Any:  # type: ignore[explicit-override, override]
+        dct = BaseModel.model_dump(self)
+        for field_value in dct["fields"]:
+            if (
+                "display_in_profile_summary" in field_value
+                and not field_value["display_in_profile_summary"]
+            ):
+                del field_value["display_in_profile_summary"]
+        return dct
+
     fields: list[DetailedCustomProfile]
 
 

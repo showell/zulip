@@ -10,11 +10,11 @@ from django.utils.translation import gettext_lazy
 from django_stubs_ext import StrPromise
 from typing_extensions import override
 
+from zerver.lib.event_types import DetailedCustomProfile
 from zerver.lib.types import (
     ExtendedFieldElement,
     ExtendedValidator,
     FieldElement,
-    ProfileDataElementBase,
     ProfileDataElementValue,
     RealmUserValidator,
     UserFieldElement,
@@ -164,21 +164,18 @@ class CustomProfileField(models.Model):
     def __str__(self) -> str:
         return f"{self.realm!r} {self.name} {self.field_type} {self.order}"
 
-    def as_dict(self) -> ProfileDataElementBase:
-        data_as_dict: ProfileDataElementBase = {
-            "id": self.id,
-            "name": self.name,
-            "type": self.field_type,
-            "hint": self.hint,
-            "field_data": self.field_data,
-            "order": self.order,
-            "required": self.required,
-            "editable_by_user": self.editable_by_user,
-        }
-        if self.display_in_profile_summary:
-            data_as_dict["display_in_profile_summary"] = True
-
-        return data_as_dict
+    def as_pydantic(self) -> DetailedCustomProfile:
+        return DetailedCustomProfile(
+            id=self.id,
+            name=self.name,
+            type=self.field_type,
+            hint=self.hint,
+            field_data=self.field_data,
+            order=self.order,
+            required=self.required,
+            editable_by_user=self.editable_by_user,
+            display_in_profile_summary=self.display_in_profile_summary,
+        )
 
     def is_renderable(self) -> bool:
         if self.field_type in [CustomProfileField.SHORT_TEXT, CustomProfileField.LONG_TEXT]:

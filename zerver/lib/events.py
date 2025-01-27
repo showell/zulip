@@ -180,7 +180,7 @@ def fetch_initial_state_data(
             state["custom_profile_fields"] = []
         else:
             fields = custom_profile_fields_for_realm(realm.id)
-            state["custom_profile_fields"] = [f.as_dict() for f in fields]
+            state["custom_profile_fields"] = [f.as_pydantic().model_dump() for f in fields]
         state["custom_profile_field_types"] = {
             item[4]: {"id": item[0], "name": str(item[1])}
             for item in CustomProfileField.ALL_FIELD_TYPES

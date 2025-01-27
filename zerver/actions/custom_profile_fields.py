@@ -4,6 +4,7 @@ import orjson
 from django.db import transaction
 from django.utils.translation import gettext as _
 
+from zerver.lib.event_types import CustomProfileFieldsEvent
 from zerver.lib.exceptions import JsonableError
 from zerver.lib.external_accounts import DEFAULT_EXTERNAL_ACCOUNTS
 from zerver.lib.streams import render_stream_description
@@ -17,8 +18,12 @@ from zerver.tornado.django_api import send_event_on_commit
 
 def notify_realm_custom_profile_fields(realm: Realm) -> None:
     fields = custom_profile_fields_for_realm(realm.id)
-    event = dict(type="custom_profile_fields", fields=[f.as_dict() for f in fields])
-    send_event_on_commit(realm, event, active_user_ids(realm.id))
+    event = CustomProfileFieldsEvent(fields=[f.as_pydantic() for f in fields])
+    # For legacy reasons, we have to use a custom model_dump
+    # field to send the event, which sorta loses our type safety
+    # here, but the client only wants us to send
+    # display_in_profile_summary when it's True.
+    send_event_on_commit(realm, event.model_dump(), active_user_ids(realm.id))
 
 
 @transaction.atomic(durable=True)
