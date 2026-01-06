@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Poll Widget Showcase</title>
+</head>
+<body>
+    <script>
+        window.location.hash = "";
+        window.DEVELOPMENT = false;
+        window.ZULIP_VERSION = "showcase-demo";
+    </script>
+    <div id="page-params" data-params='{"is_admin": false, "realm_uri": "http://localhost:9991", "full_name": "Showcase User", "user_id": 9, "realm_poll_widgets_enabled": true}'></div>
+
+    <script src="dist/bundle.js"></script>
+    
+    <script>
+        // Self-invoking check for the bundle
+        const interval = setInterval(() => {
+            if (window.showcase) {
+                window.showcase.initialize();
+                clearInterval(interval);
+            }
+        }, 100);
+    </script>
+</body>
+</html>
