@@ -152,6 +152,7 @@ parser.add_argument(
     action="store_true",
     help="generate a stub webpack-stats.json file (for backend testing)",
 )
+
 parser.add_argument("--quiet", action="store_true", help="Minimizes webpack output while running")
 parser.add_argument(
     "--watch", action="store_true", help="watch for changes to source files (for development)"
@@ -169,6 +170,7 @@ parser.add_argument(
 parser.add_argument("--config-name", help="Limit production building to only one config-name")
 
 args = parser.parse_args()
+
 if "PUPPETEER_TESTS" in os.environ:
     build_for_prod_or_puppeteer(args.quiet)
 elif args.test:

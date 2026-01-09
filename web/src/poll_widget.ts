@@ -16,7 +16,7 @@ import {new_option_schema, question_schema, vote_schema} from "./poll_schema.ts"
 // until the widget parses it with zod.
 export type Event = {sender_id: number; data: unknown};
 
-type WidgetContext = {
+export interface WidgetContext{
     is_container_hidden: () => boolean;
     is_my_poll: () => boolean;
     owner_user_id: () => number;

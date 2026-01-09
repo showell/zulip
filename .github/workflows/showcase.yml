@@ -1,0 +1,50 @@
+name: Build & Publish Showcase
+
+on:
+  push:
+    branches:
+      - showcase
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ---- Node.js ----
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install Node dependencies
+        run: npm install
+
+      # ---- Python ----
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Generate showcase static assets
+        run: python tools/generate_showcase_static_assets.py
+
+      # ---- Upload Pages artifact ----
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: static/webpack-bundles
+
+      # ---- Deploy to GitHub Pages ----
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
