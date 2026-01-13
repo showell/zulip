@@ -12,17 +12,17 @@ import * as z from "zod/mini";
     zform-trivia-quiz-bot section for more details.
 */
 
-export const zform_widget_extra_data_schema = z.object({
+export const form_schema = z.object({
+    type: z.literal("choices"),
+    heading: z.string(),
     choices: z.array(
         z.object({
             type: z.string(),
+            short_name: z.string(),
             long_name: z.string(),
             reply: z.string(),
-            short_name: z.string(),
         }),
     ),
-    heading: z.string(),
-    type: z.literal("choices"),
 });
 
-export type ZFormExtraData = z.infer<typeof zform_widget_extra_data_schema>;
+export type ZFormData = z.infer<typeof form_schema>;

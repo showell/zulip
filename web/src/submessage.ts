@@ -1,36 +1,17 @@
-import * as z from "zod/mini";
-
 import * as blueslip from "./blueslip.ts";
 import * as channel from "./channel.ts";
 import type {MessageList} from "./message_list.ts";
 import * as message_store from "./message_store.ts";
 import type {Message} from "./message_store.ts";
-import {any_widget_data_schema} from "./widget_schema.ts";
-import type {WidgetOutboundData} from "./widget_schema.ts";
+import type {PollWidgetOutboundData} from "./poll_schema.ts";
+import type {EventInfo, Submessage} from "./submessage_schema.ts";
+import {get_event_info} from "./submessage_schema.ts";
+import type {TodoWidgetOutboundData} from "./todo_widget.ts";
 import * as widgetize from "./widgetize.ts";
 
-export type Submessage = z.infer<typeof message_store.submessage_schema>;
+type WidgetOutboundData = PollWidgetOutboundData | TodoWidgetOutboundData;
 
-const widget_data_event_schema = z.object({
-    sender_id: z.number(),
-    data: any_widget_data_schema,
-});
-
-const inbound_data_event_schema = z.object({
-    sender_id: z.number(),
-    data: z.intersection(
-        z.object({
-            type: z.string(),
-        }),
-        z.record(z.string(), z.unknown()),
-    ),
-});
-
-const submessages_event_schema = z.tuple([widget_data_event_schema], inbound_data_event_schema);
-
-type SubmessageEvents = z.infer<typeof submessages_event_schema>;
-
-export function get_message_events(message: Message): SubmessageEvents | undefined {
+export function get_message_events(message: Message): EventInfo | undefined {
     if (message.locally_echoed) {
         return undefined;
     }
@@ -39,14 +20,7 @@ export function get_message_events(message: Message): SubmessageEvents | undefin
         return undefined;
     }
 
-    message.submessages.sort((m1, m2) => m1.id - m2.id);
-
-    const events = message.submessages.map((obj): {sender_id: number; data: unknown} => ({
-        sender_id: obj.sender_id,
-        data: JSON.parse(obj.content),
-    }));
-    const clean_events = submessages_event_schema.parse(events);
-    return clean_events;
+    return get_event_info(message);
 }
 
 export function process_widget_rows_in_list(list: MessageList | undefined): void {
@@ -78,30 +52,27 @@ export function do_process_submessages(in_opts: {$row: JQuery; message_id: numbe
         return;
     }
 
-    const events = get_message_events(message);
+    const event_info = get_message_events(message);
 
-    if (!events) {
+    if (!event_info) {
         return;
     }
-    const [widget_event, ...inbound_events] = events;
-
-    if (widget_event.sender_id !== message.sender_id) {
-        blueslip.warn(`User ${widget_event.sender_id} tried to hijack message ${message.id}`);
-        return;
-    }
-
-    const $row = in_opts.$row;
 
     // Right now, our only use of submessages is widgets.
+    const {original_sender_id, widget_init_data, inbound_events} = event_info;
 
-    const any_data = widget_event.data;
+    if (original_sender_id !== message.sender_id) {
+        blueslip.warn(`User ${original_sender_id} tried to hijack message ${message.id}`);
+        return;
+    }
 
     const post_to_server = make_server_callback(message_id);
 
+    // Call into the input layer for the widget system here.
     widgetize.activate({
-        any_data,
+        widget_init_data,
         events: inbound_events,
-        $row,
+        $row: in_opts.$row,
         message,
         post_to_server,
     });
@@ -151,6 +122,7 @@ export function handle_event(submsg: Submessage): void {
         return;
     }
 
+    // Call into the input layer for the widget system here.
     widgetize.handle_event({
         sender_id: submsg.sender_id,
         message_id: submsg.message_id,

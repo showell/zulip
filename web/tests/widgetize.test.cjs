@@ -61,9 +61,6 @@ set_global("document", "document-stub");
 
 const {GenericWidget} = zrequire("generic_widget");
 const widgetize = zrequire("widgetize");
-const widgets = zrequire("widgets");
-
-widgets.initialize();
 
 function test(label, f) {
     run_test(label, ({override}) => {
@@ -87,11 +84,11 @@ test("activate", ({override}) => {
     $row.set_find_results(".message_content", $message_content);
 
     const opts = {
-        events: [...events],
-        any_data: {
+        widget_init_data: {
+            setup_data: {question: "What's for lunch?", options: []},
             widget_type: "poll",
-            extra_data: "",
         },
+        events: [...events],
         message: {
             id: 2001,
         },
@@ -129,25 +126,6 @@ test("activate", ({override}) => {
 
     widgetize.activate(opts);
 
-    assert.ok(!is_widget_elem_inserted);
-    assert.ok(!is_widget_activated);
-    assert.ok(!is_event_handled);
-
-    blueslip.expect("warn", "unknown widget_type");
-    is_widget_elem_inserted = false;
-    is_widget_activated = false;
-    is_event_handled = false;
-    opts.any_data.widget_type = "invalid_widget";
-
-    widgetize.activate(opts);
-    assert.ok(!is_widget_elem_inserted);
-    assert.ok(!is_widget_activated);
-    assert.ok(!is_event_handled);
-    assert.deepEqual(blueslip.get_test_logs("warn")[0].more_info, {widget_type: "invalid_widget"});
-
-    opts.any_data.widget_type = "tictactoe";
-
-    widgetize.activate(opts);
     assert.ok(!is_widget_elem_inserted);
     assert.ok(!is_widget_activated);
     assert.ok(!is_event_handled);
