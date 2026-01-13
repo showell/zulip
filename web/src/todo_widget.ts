@@ -13,19 +13,15 @@ import * as message_lists from "./message_lists.ts";
 import type {Message} from "./message_store.ts";
 import {page_params} from "./page_params.ts";
 import * as people from "./people.ts";
-import type {Event} from "./widget_data.ts";
-import type {AnyWidgetData} from "./widget_schema.ts";
+import type {TodoSetupData} from "./todo_data.ts";
+
+// Our Event data from the server is opaque and unknown
+// until the widget parses it with zod.
+export type Event = {sender_id: number; data: unknown};
 
 // Any single user should send add a finite number of tasks
 // to a todo list. We arbitrarily pick this value.
 const MAX_IDX = 1000;
-
-export const todo_widget_extra_data_schema = z.object({
-    task_list_title: z.optional(z.string()),
-    tasks: z.optional(z.array(z.object({task: z.string(), desc: z.string()}))),
-});
-
-export type TodoWidgetExtraData = z.infer<typeof todo_widget_extra_data_schema>;
 
 const todo_widget_inbound_data = z.intersection(
     z.object({
@@ -319,16 +315,15 @@ export class TaskData {
 export function activate({
     $elem,
     callback,
-    any_data,
+    setup_data,
     message,
 }: {
     $elem: JQuery;
     callback: (data: TodoWidgetOutboundData) => void;
-    any_data: AnyWidgetData;
+    setup_data: TodoSetupData;
     message: Message;
 }): (events: Event[]) => void {
-    assert(any_data.widget_type === "todo");
-    const {task_list_title = "", tasks = []} = any_data.extra_data ?? {};
+    const {task_list_title = "", tasks = []} = setup_data;
     const is_my_task_list = people.is_my_user_id(message.sender_id);
     const task_data = new TaskData({
         message_sender_id: message.sender_id,

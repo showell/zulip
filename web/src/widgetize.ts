@@ -1,11 +1,14 @@
 import $ from "jquery";
 
 import type {GenericWidget, PostToServerFunction} from "./generic_widget.ts";
-import {create_widget_instance, is_supported_widget_type} from "./generic_widget.ts";
+import {create_widget_instance} from "./generic_widget.ts";
 import * as message_lists from "./message_lists.ts";
 import type {Message} from "./message_store.ts";
-import type {Event} from "./widget_data.ts";
-import type {AnyWidgetData} from "./widget_schema.ts";
+import type {WidgetInitData} from "./submessage_schema.ts";
+
+// Our Event data from the server is opaque and unknown
+// until the widget parses it with zod.
+export type Event = {sender_id: number; data: unknown};
 
 // These are the arguments that get passed in to us from the
 // submessage system, which is essentially the transport layer
@@ -16,7 +19,7 @@ import type {AnyWidgetData} from "./widget_schema.ts";
 // and then sends events to active users when new submessages arrive
 // via the standard Zulip events mechanism.
 type ActivateArguments = {
-    any_data: AnyWidgetData;
+    widget_init_data: WidgetInitData;
     events: Event[];
     $row: JQuery;
     message: Message;
@@ -43,12 +46,11 @@ function set_widget_in_message($row: JQuery, $widget_elem: JQuery): void {
 }
 
 export function activate(in_opts: ActivateArguments): void {
-    const {any_data, events, $row, message, post_to_server} = in_opts;
-
-    // the callee will log any appropriate warnings here
-    if (!is_supported_widget_type(any_data.widget_type)) {
-        return;
-    }
+    const widget_init_data = in_opts.widget_init_data;
+    const events = in_opts.events;
+    const $row = in_opts.$row;
+    const message = in_opts.message;
+    const post_to_server = in_opts.post_to_server;
 
     const is_message_preview = $row.parent()?.attr("id") === "report-message-preview-container";
 
@@ -65,11 +67,12 @@ export function activate(in_opts: ActivateArguments): void {
     // DOM and event handlers that eventually go in this div.
     const $widget_elem = $("<div>").addClass("widget-content");
 
+    // Finally create our widget!
     const generic_widget = create_widget_instance({
+        widget_init_data,
         post_to_server,
         $widget_elem,
         message,
-        any_data,
     });
 
     if (!is_message_preview) {

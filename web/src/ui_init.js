@@ -177,7 +177,6 @@ import * as user_topic_popover from "./user_topic_popover.ts";
 import * as user_topics from "./user_topics.ts";
 import * as util from "./util.ts";
 import * as watchdog from "./watchdog.ts";
-import * as widgets from "./widgets.ts";
 
 function update_page_loading_indicator_notice() {
     const $unsupported_desktop_app_notice = $("#app-loading-unsupported-desktop-app");
@@ -471,7 +470,6 @@ export async function initialize_everything(state_data) {
         theme.initialize_theme_for_spectator();
     }
     thumbnail.initialize();
-    widgets.initialize();
     tippyjs.initialize();
     compose_tooltips.initialize();
     message_list_tooltips.initialize();

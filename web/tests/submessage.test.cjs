@@ -19,13 +19,16 @@ run_test("get_message_events", () => {
     assert.equal(submessage.get_message_events(msg), undefined);
 
     const submessages = [
-        {id: 222, sender_id: 99, content: '{"type":"new_option","idx":1,"option":"bar"}'},
         {
             id: 9,
             sender_id: 33,
-            content: '{"widget_type": "poll", "extra_data": {"question": "foo", "options": []}}',
+            content: '{"widget_type": "poll", "extra_data": {"question": "Which option?", "options": []}}',
         },
+        {id: 222, sender_id: 99, content: '{"type":"new_option","idx":1,"option":"bar"}'},
     ];
+
+    // try to confuse get_message_events by not sorting submessages by id
+    submessages.reverse();
 
     msg = {
         locally_echoed: true,
@@ -36,26 +39,27 @@ run_test("get_message_events", () => {
     msg = {
         submessages,
     };
-    assert.deepEqual(submessage.get_message_events(msg), [
-        {
-            sender_id: 33,
-            data: {
-                widget_type: "poll",
-                extra_data: {
-                    question: "foo",
-                    options: [],
+
+    assert.deepEqual(submessage.get_message_events(msg), {
+        original_sender_id: 33,
+        widget_init_data: {
+            widget_type: "poll",
+            extra_data: {
+                question: "Which option?",
+                options: [],
+            },
+        },
+        inbound_events: [
+            {
+                sender_id: 99,
+                data: {
+                    type: "new_option",
+                    idx: 1,
+                    option: "bar",
                 },
             },
-        },
-        {
-            sender_id: 99,
-            data: {
-                type: "new_option",
-                idx: 1,
-                option: "bar",
-            },
-        },
-    ]);
+        ],
+    });
 });
 
 run_test("make_server_callback", () => {
@@ -93,7 +97,7 @@ run_test("check sender", ({override}) => {
             {
                 sender_id: 2,
                 content:
-                    '{"widget_type": "poll", "extra_data": {"question": "foo", "options": []}}',
+                    '{"widget_type": "poll", "extra_data": {"question": "Which option?", "options": []}}',
             },
         ],
     };

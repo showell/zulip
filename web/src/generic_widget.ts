@@ -1,42 +1,22 @@
-import * as blueslip from "./blueslip.ts";
+import assert from "minimalistic-assert";
+
 import type {Message} from "./message_store.ts";
 import type {PollWidgetOutboundData} from "./poll_data.ts";
+import * as poll_widget from "./poll_widget.ts";
+import type {WidgetInitData} from "./submessage_schema.ts";
 import type {TodoWidgetOutboundData} from "./todo_widget.ts";
-import type {Event} from "./widget_data.ts";
-import type {AnyWidgetData} from "./widget_schema.ts";
+import * as todo_widget from "./todo_widget.ts";
+import * as zform from "./zform.ts";
+
+// Our Event data from the server is opaque and unknown
+// until the widget parses it with zod.
+export type Event = {sender_id: number; data: unknown};
 
 type HandleInboundEventsFunction = (events: Event[]) => void;
 
 export type PostToServerFunction = (data: {msg_type: string; data: WidgetOutboundData}) => void;
 
 type WidgetOutboundData = PollWidgetOutboundData | TodoWidgetOutboundData;
-
-// These are poll, todo, and zform implementations.
-// They are currently injected into us from another module
-// for historical reasons. (as of January 2026)
-type WidgetImplementation = {
-    activate: (data: {
-        $elem: JQuery;
-        callback: (data: WidgetOutboundData) => void;
-        message: Message;
-        any_data: AnyWidgetData;
-    }) => HandleInboundEventsFunction;
-};
-
-export const widgets = new Map<string, WidgetImplementation>();
-
-export function is_supported_widget_type(widget_type: string): boolean {
-    if (widgets.has(widget_type)) {
-        return true;
-    }
-
-    if (widget_type === "tictactoe") {
-        return false; // don't warn for deleted legacy widget
-    }
-
-    blueslip.warn("unknown widget_type", {widget_type});
-    return false;
-}
 
 export class GenericWidget {
     // Eventually we will have concrete classes for PollWidget,
@@ -54,16 +34,12 @@ export class GenericWidget {
 }
 
 export function create_widget_instance(info: {
+    widget_init_data: WidgetInitData;
     post_to_server: PostToServerFunction;
     $widget_elem: JQuery;
     message: Message;
-    any_data: AnyWidgetData;
 }): GenericWidget {
-    const {post_to_server, $widget_elem, message, any_data} = info;
-
-    // For historical reasons, we don't directly import the
-    // modules that handle poll, todo, and zform.
-    const widget_implementation = widgets.get(any_data.widget_type)!;
+    const {widget_init_data, post_to_server, $widget_elem, message} = info;
 
     // We pass this is into the widgets to provide them a black-box
     // service that sends any events **outbound** to the other active
@@ -77,12 +53,45 @@ export function create_widget_instance(info: {
         });
     }
 
-    const inbound_events_handler = widget_implementation.activate({
-        $elem: $widget_elem,
-        callback: post_to_server_callback,
-        message,
-        any_data,
-    });
+    function get_inbound_event_handler(): HandleInboundEventsFunction | undefined {
+        // These activate functions are annoying, and they
+        // are showell's fault from 2018. But they will go away soon,
+        // or at least better encapsulated.
+        // (showell wrote this comment)
+        switch (widget_init_data.widget_type) {
+            case "poll": {
+                return poll_widget.activate({
+                    $elem: $widget_elem,
+                    callback: post_to_server_callback,
+                    message,
+                    setup_data: widget_init_data.extra_data,
+                });
+            }
+            case "todo": {
+                return todo_widget.activate({
+                    $elem: $widget_elem,
+                    callback: post_to_server_callback,
+                    message,
+                    setup_data: widget_init_data.extra_data,
+                });
+            }
+            case "zform": {
+                return zform.activate({
+                    $elem: $widget_elem,
+                    message,
+                    form_data: widget_init_data.extra_data,
+                });
+            }
+        }
+
+        // We should never reach here, because upstream
+        // code will validate widget_type.
+        assert(false);
+        return undefined;
+    }
+
+    const inbound_events_handler = get_inbound_event_handler();
+    assert(inbound_events_handler !== undefined);
 
     return new GenericWidget(inbound_events_handler);
 }
