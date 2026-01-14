@@ -223,12 +223,14 @@ run_test("activate another person poll", ({mock_template}) => {
         out_data = data;
     };
 
+    const message = {
+        sender_id: alice.user_id,
+    };
+
     const opts = {
         $elem: $widget_elem,
+        widget_context: new ZulipWidgetContext(message),
         callback,
-        message: {
-            sender_id: alice.user_id,
-        },
         setup_data: {
             question: "What do you want?",
         },
@@ -331,15 +333,19 @@ run_test("activate own poll", ({mock_template}) => {
 
     const $widget_elem = $("<div>").addClass("widget-content");
     let out_data;
+
     const callback = (data) => {
         out_data = data;
     };
+
+    const message = {
+        sender_id: me.user_id,
+    };
+
     const opts = {
         $elem: $widget_elem,
+        widget_context: new ZulipWidgetContext(message),
         callback,
-        message: {
-            sender_id: me.user_id,
-        },
         setup_data: {
             question: "Where to go?",
         },

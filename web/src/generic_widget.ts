@@ -6,6 +6,7 @@ import * as poll_widget from "./poll_widget.ts";
 import type {WidgetInitData} from "./submessage_schema.ts";
 import type {TodoWidgetOutboundData} from "./todo_widget.ts";
 import * as todo_widget from "./todo_widget.ts";
+import {ZulipWidgetContext} from "./widget_context.ts";
 import * as zform from "./zform.ts";
 
 // Our Event data from the server is opaque and unknown
@@ -62,8 +63,8 @@ export function create_widget_instance(info: {
             case "poll": {
                 return poll_widget.activate({
                     $elem: $widget_elem,
+                    widget_context: new ZulipWidgetContext(message),
                     callback: post_to_server_callback,
-                    message,
                     setup_data: widget_init_data.extra_data,
                 });
             }

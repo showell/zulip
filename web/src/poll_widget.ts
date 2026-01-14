@@ -8,28 +8,33 @@ import render_widgets_poll_widget_results from "../templates/widgets/poll_widget
 import * as blueslip from "./blueslip.ts";
 import {$t} from "./i18n.ts";
 import * as keydown_util from "./keydown_util.ts";
-import type {Message} from "./message_store.ts";
 import {PollData} from "./poll_data.ts";
 import type {PollSetupData, PollWidgetOutboundData} from "./poll_schema.ts";
 import {new_option_schema, question_schema, vote_schema} from "./poll_schema.ts";
-import {ZulipWidgetContext} from "./widget_context.ts";
 
 // Our Event data from the server is opaque and unknown
 // until the widget parses it with zod.
 export type Event = {sender_id: number; data: unknown};
 
+type WidgetContext = {
+    is_container_hidden: () => boolean;
+    is_my_poll: () => boolean;
+    owner_user_id: () => number;
+    current_user_id: () => number;
+    get_full_name_list: (user_ids: number[]) => string;
+};
+
 export function activate({
     $elem,
+    widget_context,
     callback,
     setup_data,
-    message,
 }: {
     $elem: JQuery;
+    widget_context: WidgetContext;
     callback: (data: PollWidgetOutboundData) => void;
     setup_data: PollSetupData;
-    message: Message;
 }): (events: Event[]) => void {
-    const widget_context = new ZulipWidgetContext(message);
     const container_is_hidden = widget_context.is_container_hidden();
     const is_my_poll = widget_context.is_my_poll();
     const poll_owner_user_id = widget_context.owner_user_id();
