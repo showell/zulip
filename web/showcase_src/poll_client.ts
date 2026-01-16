@@ -1,3 +1,5 @@
+import $ from "jquery";
+
 import type {PollSetupData, PollWidgetOutboundData} from "../src/poll_schema.ts";
 import * as poll_widget from "../src/poll_widget.ts";
 
@@ -23,11 +25,11 @@ export function make_poll_client(info: {
     owner_id: number;
     user_id: number;
     get_user_name: (id: number) => string;
-    $elem: JQuery;
+    container: HTMLElement;
     post_to_server_callback: (data: PollWidgetOutboundData) => void;
     setup_data: PollSetupData;
 }): PollClient {
-    const {owner_id, user_id, get_user_name, $elem, post_to_server_callback, setup_data} = info;
+    const {owner_id, user_id, get_user_name, container, post_to_server_callback, setup_data} = info;
 
     const widget_context = new DemoWidgetContext({
         owner_id,
@@ -36,7 +38,7 @@ export function make_poll_client(info: {
     });
 
     const handler = poll_widget.activate({
-        $elem,
+        $elem: $(container),
         widget_context,
         callback: post_to_server_callback,
         setup_data,

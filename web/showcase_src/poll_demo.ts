@@ -1,4 +1,3 @@
-import $ from "jquery";
 import assert from "minimalistic-assert";
 
 import type {NewOption, Question, Vote} from "../src/poll_schema.ts";
@@ -11,7 +10,7 @@ import {make_poll_client} from "./poll_client.ts";
 const demo_area = document.querySelector(".demo");
 demo_area!.innerHTML = `<div class="poll-alice">`;
 demo_area!.innerHTML += `<div class="poll-bob">`;
-console.log("Alice and Bob are in non-message containers!!!");
+console.log("Alice and Bob are in NON-MESSAGE containers!!!");
 
 let alice_client: PollClient | undefined;
 let bob_client: PollClient | undefined;
@@ -51,7 +50,7 @@ alice_client = make_poll_client({
     owner_id,
     user_id: alice.id,
     get_user_name,
-    $elem: $(".poll-alice"),
+    container: document.querySelector(".poll-alice")!,
     post_to_server_callback(data: NewOption | Question | Vote): void {
         broadcast_event({sender_id: alice.id, data});
     },
@@ -62,7 +61,7 @@ bob_client = make_poll_client({
     owner_id,
     user_id: bob.id,
     get_user_name,
-    $elem: $(".poll-bob"),
+    container: document.querySelector(".poll-bob")!,
     post_to_server_callback(data: NewOption | Question | Vote): void {
         broadcast_event({sender_id: bob.id, data});
     },
