@@ -7,10 +7,15 @@ import {make_poll_client} from "./poll_client.ts";
 
 // Middle row classes for some base styling and the `.widget-content` element.
 
-function new_container(): HTMLElement {
+function new_container(title: string): HTMLElement {
     const demo_area = document.querySelector(".demo");
+    const outer_div = document.createElement("div");
     const div = document.createElement("div");
-    demo_area!.append(div);
+    const heading = document.createElement("h5");
+    heading.textContent = title;
+    outer_div.append(heading);
+    outer_div.append(div);
+    demo_area!.append(outer_div);
     return div;
 }
 
@@ -53,7 +58,7 @@ for (const user of [alice, bob, chinmayi]) {
         owner_id,
         user_id: user.id,
         get_user_name,
-        container: new_container(),
+        container: new_container(user.name),
         post_to_server_callback(data: NewOption | Question | Vote): void {
             broadcast_event({sender_id: user.id, data});
         },
