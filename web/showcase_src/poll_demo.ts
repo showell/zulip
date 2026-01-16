@@ -7,26 +7,24 @@ import {make_poll_client} from "./poll_client.ts";
 
 // Middle row classes for some base styling and the `.widget-content` element.
 
-const demo_area = document.querySelector(".demo");
-demo_area!.innerHTML = `<div class="poll-alice">`;
-demo_area!.innerHTML += `<div class="poll-bob">`;
-console.log("Alice and Bob are in NON-MESSAGE containers!!!");
+function new_container(): HTMLElement {
+    const demo_area = document.querySelector(".demo");
+    const div = document.createElement("div");
+    demo_area!.append(div);
+    return div;
+}
 
-let alice_client: PollClient | undefined;
-let bob_client: PollClient | undefined;
+const clients: PollClient[] = [];
 
 function broadcast_event(event: Event): void {
     const {sender_id, data} = event;
 
-    if (alice_client) {
-        alice_client.handle_inbound_events([{sender_id, data}]);
-    }
-    if (bob_client) {
-        bob_client.handle_inbound_events([{sender_id, data}]);
+    for (const client of clients) {
+        client.handle_inbound_events([{sender_id, data}]);
     }
 }
 
-const alice = {id: 101, name: "Alice"};
+const alice = {id: 101, name: "Axlice"};
 const bob = {id: 202, name: "Bob"};
 const owner_id = alice.id;
 
@@ -46,24 +44,26 @@ const setup_data = {
     options: ["kinda cool!", "I don't quite get it", "meh"],
 };
 
-alice_client = make_poll_client({
+const alice_client = make_poll_client({
     owner_id,
     user_id: alice.id,
     get_user_name,
-    container: document.querySelector(".poll-alice")!,
+    container: new_container(),
     post_to_server_callback(data: NewOption | Question | Vote): void {
         broadcast_event({sender_id: alice.id, data});
     },
     setup_data,
 });
 
-bob_client = make_poll_client({
+const bob_client = make_poll_client({
     owner_id,
     user_id: bob.id,
     get_user_name,
-    container: document.querySelector(".poll-bob")!,
+    container: new_container(),
     post_to_server_callback(data: NewOption | Question | Vote): void {
         broadcast_event({sender_id: bob.id, data});
     },
     setup_data,
 });
+
+clients.push(alice_client, bob_client);
