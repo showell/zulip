@@ -24,8 +24,10 @@ function broadcast_event(event: Event): void {
     }
 }
 
-const alice = {id: 101, name: "Axlice"};
-const bob = {id: 202, name: "Bob"};
+const alice = {id: 101, name: "Alice"};
+const bob = {id: 201, name: "Bob"};
+const chinmayi = {id: 301, name: "Chinmayi"};
+
 const owner_id = alice.id;
 
 function get_user_name(id: number): string {
@@ -34,6 +36,8 @@ function get_user_name(id: number): string {
             return alice.name;
         case bob.id:
             return bob.name;
+        case chinmayi.id:
+            return chinmayi.name;
     }
     assert(false);
     return "UNKNOWN PERSON";
@@ -44,26 +48,16 @@ const setup_data = {
     options: ["kinda cool!", "I don't quite get it", "meh"],
 };
 
-const alice_client = make_poll_client({
-    owner_id,
-    user_id: alice.id,
-    get_user_name,
-    container: new_container(),
-    post_to_server_callback(data: NewOption | Question | Vote): void {
-        broadcast_event({sender_id: alice.id, data});
-    },
-    setup_data,
-});
-
-const bob_client = make_poll_client({
-    owner_id,
-    user_id: bob.id,
-    get_user_name,
-    container: new_container(),
-    post_to_server_callback(data: NewOption | Question | Vote): void {
-        broadcast_event({sender_id: bob.id, data});
-    },
-    setup_data,
-});
-
-clients.push(alice_client, bob_client);
+for (const user of [alice, bob, chinmayi]) {
+    const client = make_poll_client({
+        owner_id,
+        user_id: user.id,
+        get_user_name,
+        container: new_container(),
+        post_to_server_callback(data: NewOption | Question | Vote): void {
+            broadcast_event({sender_id: user.id, data});
+        },
+        setup_data,
+    });
+    clients.push(client);
+}
