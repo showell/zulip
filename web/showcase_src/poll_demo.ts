@@ -1,32 +1,29 @@
 import $ from "jquery";
 import assert from "minimalistic-assert";
 
-import type {PollWidgetOutboundData} from "../src/poll_schema.ts";
-import * as poll_widget from "../src/poll_widget.ts";
+import type {NewOption, Question, Vote} from "../src/poll_schema.ts";
 
-import {DemoWidgetContext} from "./demo_widget_context.ts";
-
-type EventData = PollWidgetOutboundData;
-type Event = {sender_id: number; data: unknown};
-type EventsHandler = (events: Event[]) => void;
+import type {Event, PollClient} from "./poll_client.ts";
+import {make_poll_client} from "./poll_client.ts";
 
 // Middle row classes for some base styling and the `.widget-content` element.
+
 const demo_area = document.querySelector(".demo");
 demo_area!.innerHTML = `<div class="poll-alice">`;
 demo_area!.innerHTML += `<div class="poll-bob">`;
-console.log("alice and bob are in non-message containers");
+console.log("Alice and Bob are in non-message containers!!!");
 
-let poll_callback_alice: EventsHandler | undefined;
-let poll_callback_bob: EventsHandler | undefined;
+let alice_client: PollClient | undefined;
+let bob_client: PollClient | undefined;
 
 function broadcast_event(event: Event): void {
     const {sender_id, data} = event;
 
-    if (poll_callback_alice) {
-        poll_callback_alice([{sender_id, data}]);
+    if (alice_client) {
+        alice_client.handle_inbound_events([{sender_id, data}]);
     }
-    if (poll_callback_bob) {
-        poll_callback_bob([{sender_id, data}]);
+    if (bob_client) {
+        bob_client.handle_inbound_events([{sender_id, data}]);
     }
 }
 
@@ -50,34 +47,24 @@ const setup_data = {
     options: ["kinda cool!", "I don't quite get it", "meh"],
 };
 
-const alice_widget_context = new DemoWidgetContext({
+alice_client = make_poll_client({
     owner_id,
     user_id: alice.id,
     get_user_name,
-});
-
-const bob_widget_context = new DemoWidgetContext({
-    owner_id,
-    user_id: bob.id,
-    get_user_name,
-});
-
-const opts = {
     $elem: $(".poll-alice"),
-    widget_context: alice_widget_context,
-    callback(data: EventData): void {
+    post_to_server_callback(data: NewOption | Question | Vote): void {
         broadcast_event({sender_id: alice.id, data});
     },
     setup_data,
-};
-poll_callback_alice = poll_widget.activate(opts);
+});
 
-const opts_bob = {
+bob_client = make_poll_client({
+    owner_id,
+    user_id: bob.id,
+    get_user_name,
     $elem: $(".poll-bob"),
-    widget_context: bob_widget_context,
-    callback(data: EventData): void {
+    post_to_server_callback(data: NewOption | Question | Vote): void {
         broadcast_event({sender_id: bob.id, data});
     },
     setup_data,
-};
-poll_callback_bob = poll_widget.activate(opts_bob);
+});
