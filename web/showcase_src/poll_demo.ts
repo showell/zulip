@@ -10,8 +10,9 @@ type Event = {sender_id: number; data: unknown};
 type EventsHandler = (events: Event[]) => void;
 
 // Middle row classes for some base styling and the `.widget-content` element.
-document.querySelector(".column-middle-inner")!.innerHTML = `<div class="widget-content-alice">`;
-document.querySelector(".column-middle-inner")!.innerHTML += `<div class="widget-content-bob">`;
+const demo_area = document.querySelector(".demo");
+demo_area.innerHTML = `<div class="widget-content-alice">`;
+demo_area.innerHTML += `<div class="widget-content-bob">`;
 console.log("alice and bob are in non-message containers");
 
 let poll_callback_alice: EventsHandler | undefined;
