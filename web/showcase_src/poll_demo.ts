@@ -1,3 +1,4 @@
+import $ from "jquery";
 import type {PollWidgetOutboundData} from "../src/poll_schema.ts";
 
 // Middle row classes for some base styling and the `.widget-content` element.
