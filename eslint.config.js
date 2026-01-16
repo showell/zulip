@@ -290,7 +290,7 @@ export default defineConfig(
         },
     },
     {
-        files: ["web/src/**"],
+        files: ["web/src/**", "web/showcase_src/**"],
         languageOptions: {
             globals: {
                 ...globals.browser,
