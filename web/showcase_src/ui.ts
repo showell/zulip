@@ -3,8 +3,8 @@ export class Section {
 
     constructor() {
         const outer_div = document.createElement("div");
-        outer_div.style.display = "grid";
-        outer_div.style.justifyContent = "space-around";
+        outer_div.style.display = "flex";
+        outer_div.style.justifyContent = "centerl";
         outer_div.style.backgroundColor = "white";
 
         const demo_area = document.querySelector(".demo");
@@ -16,11 +16,10 @@ export class Section {
         const {title, width} = info;
 
         const div = document.createElement("div");
-        div.style.flex = "1";
         div.style.width = width;
         div.style.border = "1px solid blue";
-        div.style.margin = "5px";
-        div.style.padding = "10px";
+        div.style.margin = "10px";
+        div.style.padding = "20px";
 
         const heading = document.createElement("b");
         heading.textContent = title;
