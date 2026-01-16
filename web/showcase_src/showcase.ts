@@ -26,4 +26,6 @@ const lang_list = page_params.language_list.map((lang) => ({
 i18n.initialize({language_list: lang_list});
 console.log("language_list", i18n.language_list);
 
-await import("./poll_demo.ts");
+// Our first demo!!!!
+const poll_demo = await import("./poll_demo.ts");
+poll_demo.launch();
