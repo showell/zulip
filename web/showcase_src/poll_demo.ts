@@ -46,8 +46,8 @@ function get_user_name(id: number): string {
 }
 
 const setup_data = {
-    question: "Where do you want to go?",
-    options: ["east", "west"],
+    question: "What do you think of the demo?",
+    options: ["kinda cool!", "I don't quite get it", "meh"],
 };
 
 const alice_widget_context = new DemoWidgetContext({
