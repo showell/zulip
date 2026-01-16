@@ -1,9 +1,8 @@
-import assert from "minimalistic-assert";
-
 import type {NewOption, Question, Vote} from "../src/poll_schema.ts";
 
 import type {Event, PollClient} from "./poll_client.ts";
 import {make_poll_client} from "./poll_client.ts";
+import {Realm} from "./realm.ts";
 
 function new_container(title: string): HTMLElement {
     const demo_area = document.querySelector(".demo");
@@ -20,22 +19,7 @@ function new_container(title: string): HTMLElement {
 export function launch(): void {
     const clients: PollClient[] = [];
 
-    const alice = {id: 101, name: "Alice"};
-    const bob = {id: 201, name: "Bob Roberts"};
-    const chinmayi = {id: 301, name: "Chinmayi"};
-
-    function get_user_name(id: number): string {
-        switch (id) {
-            case alice.id:
-                return alice.name;
-            case bob.id:
-                return bob.name;
-            case chinmayi.id:
-                return chinmayi.name;
-        }
-        assert(false);
-        return "UNKNOWN PERSON";
-    }
+    const realm = new Realm();
 
     function broadcast_event(event: Event): void {
         const {sender_id, data} = event;
@@ -45,12 +29,20 @@ export function launch(): void {
         }
     }
 
+    const alice = realm.make_user("Alice");
+    const bob = realm.make_user("Bob Robertson");
+    const chinmayi = realm.make_user("Chinmayi");
+
     const owner_id = alice.id;
 
     const setup_data = {
         question: "What do you think of the demo?",
         options: ["kinda cool!", "I don't quite get it", "meh"],
     };
+
+    function get_user_name(id: number): string {
+        return realm.get_user_name(id);
+    }
 
     for (const user of [alice, bob, chinmayi]) {
         const client = make_poll_client({
