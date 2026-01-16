@@ -28,8 +28,6 @@ export function get_base_html(): string {
 
     return `
         <div id="page-params" data-params='${page_params_json}'></div>
-        <div class="column-middle">
-            <div class="demo"></div>
-        </div>
+        <div class="demo"></div>
         `;
 }

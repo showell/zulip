@@ -4,10 +4,15 @@ import {make_poll_client} from "./poll_client.ts";
 import {PollSession} from "./poll_session.ts";
 import {Realm} from "./realm.ts";
 
-function new_container(title: string): HTMLElement {
+function new_container(info: {title: string; width: string}): HTMLElement {
+    const {title, width} = info;
+
     const demo_area = document.querySelector(".demo");
     const outer_div = document.createElement("div");
+    outer_div.style.display = "grid";
+    outer_div.style.placeItems = "center";
     const div = document.createElement("div");
+    div.style.width = width;
     const heading = document.createElement("h5");
     heading.textContent = title;
     outer_div.append(heading);
@@ -40,7 +45,7 @@ export function launch(): void {
             owner_id,
             user_id: user.id,
             get_user_name,
-            container: new_container(user.name),
+            container: new_container({title: user.name, width: "400px"}),
             post_to_server_callback(data: NewOption | Question | Vote): void {
                 poll_session.broadcast_event({sender_id: user.id, data});
             },
