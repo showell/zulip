@@ -6,6 +6,7 @@ export class Section {
         const outer_div = document.createElement("div");
         outer_div.style.display = "grid";
         outer_div.style.placeItems = "center";
+        outer_div.style.backgroundColor = "white";
         const div = document.createElement("div");
         div.style.width = width;
         div.style.border = "1px solid blue";
