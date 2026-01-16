@@ -1,4 +1,5 @@
 import $ from "jquery";
+import assert from "minimalistic-assert";
 
 import type {PollWidgetOutboundData} from "../src/poll_schema.ts";
 import * as poll_widget from "../src/poll_widget.ts";
@@ -11,8 +12,8 @@ type EventsHandler = (events: Event[]) => void;
 
 // Middle row classes for some base styling and the `.widget-content` element.
 const demo_area = document.querySelector(".demo");
-demo_area.innerHTML = `<div class="widget-content-alice">`;
-demo_area.innerHTML += `<div class="widget-content-bob">`;
+demo_area!.innerHTML = `<div class="poll-alice">`;
+demo_area!.innerHTML += `<div class="poll-bob">`;
 console.log("alice and bob are in non-message containers");
 
 let poll_callback_alice: EventsHandler | undefined;
@@ -29,37 +30,53 @@ function broadcast_event(event: Event): void {
     }
 }
 
+const alice = {id: 101, name: "Alice"};
+const bob = {id: 202, name: "Bob"};
+const owner_id = alice.id;
+
+function get_user_name(id: number): string {
+    switch (id) {
+        case alice.id:
+            return alice.name;
+        case bob.id:
+            return bob.name;
+    }
+    assert(false);
+    return "UNKNOWN PERSON";
+}
+
 const setup_data = {
     question: "Where do you want to go?",
     options: ["east", "west"],
 };
 
 const alice_widget_context = new DemoWidgetContext({
-    owner_id: 1,
-    user_id: 1,
-});
-const bob_widget_context = new DemoWidgetContext({
-    owner_id: 1,
-    user_id: 2,
+    owner_id,
+    user_id: alice.id,
+    get_user_name,
 });
 
-const $widget_elem_alice = $(".widget-content-alice");
+const bob_widget_context = new DemoWidgetContext({
+    owner_id,
+    user_id: bob.id,
+    get_user_name,
+});
+
 const opts = {
-    $elem: $widget_elem_alice,
+    $elem: $(".poll-alice"),
     widget_context: alice_widget_context,
     callback(data: EventData): void {
-        broadcast_event({sender_id: 1, data});
+        broadcast_event({sender_id: alice.id, data});
     },
     setup_data,
 };
 poll_callback_alice = poll_widget.activate(opts);
 
-const $widget_elem_bob = $(".widget-content-bob");
 const opts_bob = {
-    $elem: $widget_elem_bob,
+    $elem: $(".poll-bob"),
     widget_context: bob_widget_context,
     callback(data: EventData): void {
-        broadcast_event({sender_id: 2, data});
+        broadcast_event({sender_id: bob.id, data});
     },
     setup_data,
 };
