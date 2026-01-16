@@ -30,7 +30,7 @@ export function launch(): void {
             owner_id,
             user_id: user.id,
             get_user_name,
-            container: section.new_container({title: user.name, width: "350px"}),
+            container: section.new_container({title: user.name, width: "375px"}),
             post_to_server_callback(data: NewOption | Question | Vote): void {
                 poll_session.broadcast_event({sender_id: user.id, data});
             },

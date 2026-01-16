@@ -4,8 +4,10 @@ export class Section {
     constructor() {
         const outer_div = document.createElement("div");
         outer_div.style.display = "flex";
-        outer_div.style.justifyContent = "centerl";
+        outer_div.style.justifyContent = "space-around";
         outer_div.style.backgroundColor = "white";
+        outer_div.style.paddingTop = "50px";
+        outer_div.style.paddingBottom = "350px";
 
         const demo_area = document.querySelector(".demo");
         demo_area!.append(outer_div);
