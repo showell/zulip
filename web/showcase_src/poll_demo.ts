@@ -13,6 +13,9 @@ function new_container(info: {title: string; width: string}): HTMLElement {
     outer_div.style.placeItems = "center";
     const div = document.createElement("div");
     div.style.width = width;
+    div.style.border = "1px solid blue";
+    div.style.margin = "5px";
+    div.style.padding = "10px";
     const heading = document.createElement("h5");
     heading.textContent = title;
     outer_div.append(heading);
